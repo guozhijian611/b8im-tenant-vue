@@ -1,0 +1,112 @@
+<template>
+  <template v-for="(item, index) in list" :key="getUniqueKey(item, index)">
+    <ElSubMenu v-if="hasChildren(item)" :index="item.path || item.meta.title" :level="level">
+      <template #title>
+        <div class="menu-icon flex-cc">
+          <ArtSvgIcon
+            :icon="item.meta.icon"
+            :color="theme?.iconColor"
+            :style="{ color: theme.iconColor }"
+          />
+        </div>
+        <span class="menu-name">
+          {{ formatMenuTitle(item.meta.title) }}
+        </span>
+        <div v-if="item.meta.showBadge" class="art-badge" style="right: 10px" />
+      </template>
+
+      <SidebarSubmenu
+        :list="item.children"
+        :is-mobile="isMobile"
+        :level="level + 1"
+        :theme="theme"
+        @close="closeMenu"
+      />
+    </ElSubMenu>
+
+    <ElMenuItem
+      v-else
+      :index="isExternalLink(item) ? undefined : item.path || item.meta.title"
+      :level-item="level + 1"
+      @click="goPage(item)"
+    >
+      <div class="menu-icon flex-cc">
+        <ArtSvgIcon
+          :icon="item.meta.icon"
+          :color="theme?.iconColor"
+          :style="{ color: theme.iconColor }"
+        />
+      </div>
+      <div
+        v-show="item.meta.showBadge && level === 0 && !menuOpen"
+        class="art-badge"
+        style="right: 5px"
+      />
+
+      <template #title>
+        <span class="menu-name">
+          {{ formatMenuTitle(item.meta.title) }}
+        </span>
+        <div v-if="item.meta.showBadge" class="art-badge" />
+        <div v-if="item.meta.showTextBadge && (level > 0 || menuOpen)" class="art-text-badge">
+          {{ item.meta.showTextBadge }}
+        </div>
+      </template>
+    </ElMenuItem>
+  </template>
+</template>
+
+<script setup lang="ts">
+  import type { AppRouteRecord } from '@/types/router'
+  import { formatMenuTitle } from '@/utils/router'
+  import { handleMenuJump } from '@/utils/navigation'
+  import { useSettingStore } from '@/store/modules/setting'
+
+  interface MenuTheme {
+    iconColor?: string
+  }
+
+  interface Props {
+    title?: string
+    list?: AppRouteRecord[]
+    theme?: MenuTheme
+    isMobile?: boolean
+    level?: number
+  }
+
+  interface Emits {
+    (e: 'close'): void
+  }
+
+  const props = withDefaults(defineProps<Props>(), {
+    title: '',
+    list: () => [],
+    theme: () => ({}),
+    isMobile: false,
+    level: 0
+  })
+
+  const emit = defineEmits<Emits>()
+  const { menuOpen } = storeToRefs(useSettingStore())
+
+  const goPage = (item: AppRouteRecord): void => {
+    closeMenu()
+    handleMenuJump(item)
+  }
+
+  const closeMenu = (): void => {
+    emit('close')
+  }
+
+  const hasChildren = (item: AppRouteRecord): boolean => {
+    return Boolean(item.children?.length)
+  }
+
+  const isExternalLink = (item: AppRouteRecord): boolean => {
+    return Boolean(item.meta.link && !item.meta.isIframe)
+  }
+
+  const getUniqueKey = (item: AppRouteRecord, index: number): string => {
+    return `${item.path || item.meta.title || 'menu'}-${props.level}-${index}`
+  }
+</script>
