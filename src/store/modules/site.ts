@@ -6,13 +6,14 @@ import { StorageConfig } from '@/utils/storage/storage-config'
 
 type SiteInfo = Partial<Api.Auth.siteInfoResponse>
 type SiteInfoParams = {
-  appid: string
+  enterprise_code: string
   mode: string
 }
 
-const APP_ID_QUERY_KEY = 'app_id'
+const ENTERPRISE_CODE_QUERY_KEY = 'enterprise_code'
+const DEFAULT_ENTERPRISE_CODE = import.meta.env.VITE_DEFAULT_ENTERPRISE_CODE || ''
 
-const mode = import.meta.env.VITE_APP_MODE || 'appid'
+const mode = import.meta.env.VITE_APP_MODE || 'enterprise_code'
 
 const getUrlQueryValue = (key: string): string => {
   const searchParams = new URLSearchParams(window.location.search)
@@ -26,15 +27,19 @@ const getUrlQueryValue = (key: string): string => {
   return hashParams.get(key) || ''
 }
 
-const createSiteInfoParams = (appid = ''): SiteInfoParams => {
+const createSiteInfoParams = (enterpriseCode = ''): SiteInfoParams => {
   return {
-    appid,
+    enterprise_code: enterpriseCode,
     mode: import.meta.env.VITE_APP_MODE || ''
   }
 }
 
-const resolveUrlSiteInfoParams = (appid = ''): SiteInfoParams =>
-  createSiteInfoParams(appid || getUrlQueryValue(APP_ID_QUERY_KEY))
+const resolveUrlSiteInfoParams = (enterpriseCode = ''): SiteInfoParams =>
+  createSiteInfoParams(
+    enterpriseCode ||
+      getUrlQueryValue(ENTERPRISE_CODE_QUERY_KEY) ||
+      DEFAULT_ENTERPRISE_CODE
+  )
 
 export const useSiteStore = defineStore(
   'siteStore',
@@ -51,43 +56,50 @@ export const useSiteStore = defineStore(
     const siteDomain = computed(() => info.value.domain || '')
     const isEnabled = computed(() => String(info.value.status ?? '1') === '1')
 
-    const getStoredAppId = () => params.value.appid || (info.value.id ? String(info.value.id) : '')
+    const getStoredEnterpriseCode = () =>
+      params.value.enterprise_code ||
+      (info.value.enterprise_code ? String(info.value.enterprise_code) : '')
 
-    const applyStoredAppIdHeader = () => {
-      let appid = getStoredAppId()
+    const applyStoredIdentifier = () => {
+      let identifier = getStoredEnterpriseCode()
       if (mode === 'domain') {
-        appid = location.host
+        identifier = location.host
       }
-      if (appid && params.value.appid !== appid) {
-        params.value = createSiteInfoParams(appid)
+      if (identifier && params.value.enterprise_code !== identifier) {
+        params.value = createSiteInfoParams(identifier)
       }
-      return appid
+      return identifier
     }
 
     const setSiteInfo = (data: Api.Auth.siteInfoResponse) => {
       info.value = data
       loaded.value = true
-      params.value = createSiteInfoParams(String(data.id || params.value.appid || ''))
+      params.value = createSiteInfoParams(
+        String(data.enterprise_code || params.value.enterprise_code || '')
+      )
     }
 
-    const loadSiteInfo = async (force = false, appid = '') => {
-      const urlParams = resolveUrlSiteInfoParams(appid)
-      const hasUrlAppId = Boolean(urlParams.appid)
+    const loadSiteInfo = async (force = false, enterpriseCode = '') => {
+      const urlParams = resolveUrlSiteInfoParams(enterpriseCode)
+      const hasUrlEnterpriseCode = Boolean(urlParams.enterprise_code)
 
-      if (!hasUrlAppId && !force && loaded.value) {
-        applyStoredAppIdHeader()
+      if (!hasUrlEnterpriseCode && !force && loaded.value) {
+        applyStoredIdentifier()
         return info.value
       }
 
-      const nextParams = hasUrlAppId ? urlParams : createSiteInfoParams(applyStoredAppIdHeader())
-      if (!nextParams.appid) {
+      const nextParams = hasUrlEnterpriseCode
+        ? urlParams
+        : createSiteInfoParams(applyStoredIdentifier())
+      if (!nextParams.enterprise_code) {
         return info.value
       }
 
       const isSameParams =
-        params.value.appid === nextParams.appid && params.value.mode === nextParams.mode
+        params.value.enterprise_code === nextParams.enterprise_code &&
+        params.value.mode === nextParams.mode
 
-      if (!force && !hasUrlAppId && loaded.value && isSameParams) {
+      if (!force && !hasUrlEnterpriseCode && loaded.value && isSameParams) {
         return info.value
       }
 
@@ -140,9 +152,11 @@ export const useSiteStore = defineStore(
       storage: localStorage,
       pick: ['info', 'params'],
       afterHydrate: ({ store }) => {
-        const appid = store.params?.appid || (store.info?.id ? String(store.info.id) : '')
-        if (appid) {
-          store.params = createSiteInfoParams(appid)
+        const enterpriseCode =
+          store.params?.enterprise_code ||
+          (store.info?.enterprise_code ? String(store.info.enterprise_code) : '')
+        if (enterpriseCode) {
+          store.params = createSiteInfoParams(enterpriseCode)
         }
       }
     }

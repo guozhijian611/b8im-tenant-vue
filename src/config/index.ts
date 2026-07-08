@@ -5,7 +5,7 @@ import { headerBarConfig } from './modules/headerBar'
 
 const appConfig: SystemConfig = {
   systemInfo: {
-    name: 'SaiMulti'
+    name: 'b8im 租户后台'
   },
   systemThemeStyles: {
     [SystemThemeEnum.LIGHT]: { className: '' },
@@ -79,12 +79,12 @@ const appConfig: SystemConfig = {
     }
   ],
   systemMainColor: [
-    '#5D87FF',
-    '#ad46ff',
-    '#52B398',
-    '#007595',
-    '#ff6900',
-    '#f6339a',
+    '#18B57C',
+    '#10C8A0',
+    '#0F8B6B',
+    '#007C70',
+    '#F59E0B',
+    '#E11D48',
     '#0F172B'
   ] as const,
   headerBar: headerBarConfig

@@ -7,16 +7,21 @@
     </div>
 
     <div class="left-img">
-      <ThemeSvg :src="loginIcon" size="100%" />
+      <img :src="loginIllustration" alt="b8im login illustration" />
     </div>
 
     <div class="text-wrap">
       <h1> {{ $t('login.leftView.title') }} </h1>
       <p> {{ $t('login.leftView.subTitle') }} </p>
+      <div class="capability-list">
+        <span>{{ $t('login.leftView.points.users') }}</span>
+        <span>{{ $t('login.leftView.points.messages') }}</span>
+        <span>{{ $t('login.leftView.points.organization') }}</span>
+      </div>
     </div>
 
     <!-- 几何装饰元素 -->
-    <div class="geometric-decorations">
+    <div v-if="false" class="geometric-decorations">
       <!-- 基础几何形状 -->
       <div class="geo-element circle-outline animate-fade-in-up" style="animation-delay: 0s"></div>
       <div
@@ -72,7 +77,7 @@
 
 <script setup lang="ts">
   import { useSiteStore } from '@/store/modules/site'
-  import loginIcon from '@imgs/svg/login_icon.svg'
+  import loginIllustration from '@imgs/login/b8im-login-illustration.png'
   import { themeAnimation } from '@/utils/ui/animation'
   const { siteTitle } = storeToRefs(useSiteStore())
 
@@ -102,7 +107,9 @@
     height: 100%;
     padding: 15px;
     overflow: hidden;
-    background-color: $bg-mix-light-9;
+    background:
+      var(--login-left-bg, linear-gradient(135deg, #ecfdf5 0%, #f8fffc 48%, #dffbf1 100%)),
+      $bg-mix-light-9;
 
     .logo {
       position: relative;
@@ -113,22 +120,36 @@
       .title {
         margin-left: 10px;
         font-size: 20px;
-        font-weight: 400;
+        font-weight: 600;
+        color: var(--login-brand-color, #0f3f35);
       }
     }
 
     .left-img {
       position: absolute;
-      inset: 0 0 10.5%;
+      top: clamp(120px, 13vh, 168px);
+      right: 0;
+      left: 0;
       z-index: 10;
-      width: 40%;
+      width: min(54%, 680px);
       margin: auto;
       animation: slideInLeft 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+
+      img {
+        display: block;
+        width: 100%;
+        height: auto;
+        border-radius: 20px;
+        mix-blend-mode: var(--login-illustration-blend, multiply);
+        filter: saturate(1.02) contrast(1.02);
+        box-shadow: 0 18px 48px rgb(15 139 107 / 10%);
+      }
     }
 
     .text-wrap {
       position: absolute;
-      bottom: 80px;
+      bottom: clamp(96px, 12vh, 150px);
+      left: 0;
       width: 100%;
       text-align: center;
       animation: slideInLeft 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
@@ -143,6 +164,22 @@
         margin-top: 10px;
         font-size: 14px;
         color: var(--art-gray-600) !important;
+      }
+
+      .capability-list {
+        display: flex;
+        justify-content: center;
+        gap: 10px;
+        margin-top: 22px;
+
+        span {
+          padding: 7px 12px;
+          font-size: 13px;
+          color: var(--el-color-primary);
+          background-color: color-mix(in srgb, var(--el-color-primary-light-9) 78%, #fff);
+          border: 1px solid var(--el-color-primary-light-8);
+          border-radius: 8px;
+        }
       }
     }
 
@@ -486,10 +523,15 @@
     }
 
     @media only screen and (width <= 1600px) {
-      width: 60vw;
+      width: 62vw;
+
+      .left-img {
+        top: clamp(112px, 12vh, 150px);
+        width: min(64%, 620px);
+      }
 
       .text-wrap {
-        bottom: 40px;
+        bottom: clamp(120px, 14vh, 170px);
       }
     }
 
@@ -512,92 +554,4 @@
     }
   }
 
-  // 暗色主题
-  .dark .login-left-view {
-    background-color: color-mix(in srgb, $primary-light-9 60%, #070707);
-
-    @media only screen and (width <= 1180px) {
-      background: transparent;
-    }
-
-    .geometric-decorations {
-      // 月亮效果
-      .circle-top-right {
-        background-color: $bg-mix-light-8;
-        box-shadow: 0 0 25px #333 inset;
-        transition: all 0.3s ease-in-out 0.1s;
-        rotate: -48deg;
-
-        &::before {
-          position: absolute;
-          top: 0;
-          left: 15px;
-          width: 50px;
-          height: 50px;
-          content: '';
-          background-color: $bg-mix-light-9;
-          border-radius: 50%;
-          transition: all 0.3s ease-in-out;
-        }
-
-        &:hover {
-          background-color: transparent;
-          box-shadow: 0 40px 25px #ddd inset;
-
-          &::before {
-            left: 18px;
-          }
-
-          &::after {
-            opacity: 0;
-          }
-        }
-      }
-
-      .bg-bubble {
-        background-color: $bg-mix-light-9;
-      }
-
-      // 其他元素颜色调整
-      .square-rotated {
-        background-color: $bg-mix-light-9;
-      }
-
-      .circle-small,
-      .dot {
-        background-color: $primary-light-8;
-      }
-
-      .square-bottom-right {
-        background-color: $primary-light-9;
-      }
-
-      .dot.dot-top-right {
-        background-color: $primary-light-8;
-      }
-    }
-
-    // 方块组暗色调整
-    .squares-group {
-      .square {
-        box-shadow: none;
-
-        &.square-blue {
-          background-color: rgb(from $primary-base r g b / 18%);
-        }
-
-        &.square-pink {
-          background-color: rgb(from $primary-base r g b / 10%);
-        }
-
-        &.square-purple {
-          background-color: rgb(from $primary-base r g b / 20%);
-        }
-      }
-
-      &::after {
-        background: linear-gradient(90deg, $primary-light-8, transparent);
-      }
-    }
-  }
 </style>

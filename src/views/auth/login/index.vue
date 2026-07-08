@@ -1,13 +1,14 @@
 <!-- 登录页面 -->
 <template>
-  <div class="flex w-full h-screen">
+  <div class="login-page flex w-full h-screen">
     <LoginLeftView />
 
-    <div class="relative flex-1">
+    <div class="login-form-side relative flex-1">
       <AuthTopBar />
 
       <div class="auth-right-wrap">
         <div class="form">
+          <div class="entry-badge">{{ $t('login.entryLabel') }}</div>
           <h3 class="title">{{ $t('login.title') }}</h3>
           <p class="sub-title">{{ $t('login.subTitle') }}</p>
           <ElForm
@@ -16,8 +17,17 @@
             :rules="rules"
             :key="formKey"
             @keyup.enter="handleSubmit"
-            style="margin-top: 25px"
+            style="margin-top: 30px"
           >
+            <ElFormItem v-if="requiresEnterpriseCode" prop="enterpriseCode">
+              <ElInput
+                class="custom-height"
+                :placeholder="$t('login.placeholder.enterpriseCode')"
+                v-model.trim="formData.enterpriseCode"
+                :disabled="siteLoading || loading"
+                @blur="handleEnterpriseCodeBlur"
+              />
+            </ElFormItem>
             <ElFormItem prop="username">
               <ElInput
                 class="custom-height"
@@ -89,6 +99,7 @@
 
 <script setup lang="ts">
   import { useUserStore } from '@/store/modules/user'
+  import { useSiteStore } from '@/store/modules/site'
   import { useI18n } from 'vue-i18n'
   import { HttpError } from '@/utils/http/error'
   import { fetchCaptcha, fetchLogin, fetchGetUserInfo } from '@/api/auth'
@@ -107,7 +118,11 @@
   })
 
   const userStore = useUserStore()
+  const siteStore = useSiteStore()
   const router = useRouter()
+  const route = useRoute()
+  const appMode = import.meta.env.VITE_APP_MODE || 'enterprise_code'
+  const requiresEnterpriseCode = computed(() => appMode !== 'domain')
 
   const captcha = ref(
     'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'
@@ -116,6 +131,7 @@
   const formRef = ref<FormInstance>()
 
   const formData = reactive({
+    enterpriseCode: '',
     username: '',
     password: '',
     code: '',
@@ -124,16 +140,34 @@
   })
 
   const rules = computed<FormRules>(() => ({
+    enterpriseCode: requiresEnterpriseCode.value
+      ? [
+          {
+            required: true,
+            message: t('login.placeholder.enterpriseCode'),
+            trigger: 'blur'
+          }
+        ]
+      : [],
     username: [{ required: true, message: t('login.placeholder.username'), trigger: 'blur' }],
     password: [{ required: true, message: t('login.placeholder.password'), trigger: 'blur' }],
     code: [{ required: true, message: t('login.placeholder.code'), trigger: 'blur' }]
   }))
 
   const loading = ref(false)
+  const siteLoading = ref(false)
 
   onMounted(() => {
+    syncEnterpriseCodeInput()
     refreshCaptcha()
   })
+
+  watch(
+    () => [route.query.enterprise_code, siteStore.params.enterprise_code],
+    () => {
+      syncEnterpriseCodeInput()
+    }
+  )
 
   // 登录
   const handleSubmit = async () => {
@@ -148,6 +182,7 @@
       if (!valid) return
 
       loading.value = true
+      await resolveEnterpriseCode()
 
       // 登录请求
       const { access_token, refresh_token } = await fetchLogin({
@@ -201,6 +236,77 @@
       formData.uuid = res.uuid
       captcha.value = res.image
     })
+  }
+
+  const getRouteEnterpriseCode = () => {
+    const enterpriseCode = route.query.enterprise_code
+    return Array.isArray(enterpriseCode)
+      ? enterpriseCode[0] || ''
+      : String(enterpriseCode || '')
+  }
+
+  const getStoredEnterpriseCode = () =>
+    siteStore.params.enterprise_code ||
+    (siteStore.info.enterprise_code ? String(siteStore.info.enterprise_code) : '')
+
+  const syncEnterpriseCodeInput = () => {
+    if (!requiresEnterpriseCode.value) {
+      return
+    }
+    const enterpriseCode = getRouteEnterpriseCode() || getStoredEnterpriseCode()
+    if (enterpriseCode && formData.enterpriseCode !== enterpriseCode) {
+      formData.enterpriseCode = enterpriseCode
+    }
+  }
+
+  const replaceEnterpriseCodeQuery = async (enterpriseCode: string) => {
+    if (route.query.enterprise_code === enterpriseCode) {
+      return
+    }
+
+    const nextQuery = { ...route.query, enterprise_code: enterpriseCode }
+    await router.replace({
+      path: route.path,
+      query: nextQuery,
+      hash: route.hash
+    })
+  }
+
+  const resolveEnterpriseCode = async () => {
+    if (!requiresEnterpriseCode.value) {
+      return
+    }
+
+    const enterpriseCode = formData.enterpriseCode.trim()
+    formData.enterpriseCode = enterpriseCode
+    if (!enterpriseCode) {
+      return
+    }
+
+    const isResolved =
+      siteStore.loaded &&
+      Boolean(siteStore.info.id) &&
+      siteStore.params.enterprise_code === enterpriseCode
+
+    if (!isResolved) {
+      await siteStore.loadSiteInfo(true, enterpriseCode)
+    }
+    await replaceEnterpriseCodeQuery(enterpriseCode)
+  }
+
+  const handleEnterpriseCodeBlur = async () => {
+    if (!requiresEnterpriseCode.value || !formData.enterpriseCode.trim()) {
+      return
+    }
+
+    try {
+      siteLoading.value = true
+      await resolveEnterpriseCode()
+    } catch {
+      // request 统一错误提示已处理，这里只避免 blur 触发未捕获异常。
+    } finally {
+      siteLoading.value = false
+    }
   }
 
   // 登录成功提示

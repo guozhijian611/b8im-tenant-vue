@@ -80,6 +80,7 @@ declare namespace Api {
       logo: string
       status: string
       domain: string
+      enterprise_code: string
       group_id: number
     }
 

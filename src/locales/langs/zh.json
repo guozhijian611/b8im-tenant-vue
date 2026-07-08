@@ -139,17 +139,24 @@
   },
   "login": {
     "leftView": {
-      "title": "一款兼具设计美学与高效开发的后台系统",
-      "subTitle": "美观实用的界面，经过视觉优化，确保卓越的用户体验"
+      "title": "租户专属 IM 运营后台",
+      "subTitle": "基于企业码进入本机构工作台，数据按 organization 隔离",
+      "points": {
+        "users": "机构用户",
+        "messages": "IM 运营",
+        "organization": "本机构数据"
+      }
     },
-    "title": "欢迎回来",
-    "subTitle": "输入您的账号和密码登录",
+    "entryLabel": "租户端",
+    "title": "登录租户后台",
+    "subTitle": "请输入本机构管理员账号和验证码",
     "roles": {
       "super": "超级管理员",
       "admin": "管理员",
       "user": "普通用户"
     },
     "placeholder": {
+      "enterpriseCode": "请输入企业码",
       "username": "请输入账号",
       "password": "请输入密码",
       "code": "请输入验证码",

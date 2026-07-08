@@ -1,5 +1,88 @@
 @reference '@styles/core/tailwind.css';
 
+.login-page {
+  --default-bg-color: #f5fbf8;
+  --default-box-color: #ffffff;
+  --art-gray-600: #64748b;
+  --art-gray-700: #334155;
+  --art-gray-800: #1f2937;
+  --art-gray-900: #0f172a;
+  --color-g-600: #64748b;
+  --color-g-700: #334155;
+  --color-g-800: #1f2937;
+  --color-g-900: #0f172a;
+  --login-primary: var(--theme-color, #18b57c);
+  --login-primary-hover: var(--theme-color-hover, #0f8b6b);
+  --login-primary-soft-bg: color-mix(in srgb, var(--login-primary) 10%, #ffffff);
+  --login-primary-soft-border: color-mix(in srgb, var(--login-primary) 22%, transparent);
+  --login-focus-ring: color-mix(in srgb, var(--login-primary) 16%, transparent);
+  --login-bg: #ffffff;
+  --login-panel-bg: #ffffff;
+  --login-title-color: #0f172a;
+  --login-subtitle-color: #64748b;
+  --login-input-bg: #ffffff;
+  --login-toolbar-bg: rgb(255 255 255 / 92%);
+  --login-toolbar-border: color-mix(in srgb, var(--login-primary) 12%, transparent);
+  --login-toolbar-shadow: 0 2px 12px rgb(15 23 42 / 8%);
+  --login-toolbar-icon: #1f2937;
+  --login-left-bg: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--login-primary) 10%, #ecfdf5) 0%,
+    #f8fffc 48%,
+    color-mix(in srgb, var(--login-primary) 16%, #dffbf1) 100%
+  );
+  --login-brand-color: #0f3f35;
+  --login-illustration-blend: multiply;
+  position: fixed;
+  inset: 0;
+  display: flex;
+  width: 100vw;
+  height: 100vh;
+  min-height: 100vh;
+  overflow: hidden;
+  color-scheme: light;
+  background-color: var(--login-bg);
+}
+
+.dark .login-page {
+  --default-bg-color: #0b1110;
+  --default-box-color: #111816;
+  --art-gray-600: #94a3b8;
+  --art-gray-700: #cbd5e1;
+  --art-gray-800: #e5e7eb;
+  --art-gray-900: #f8fafc;
+  --color-g-600: #94a3b8;
+  --color-g-700: #cbd5e1;
+  --color-g-800: #e5e7eb;
+  --color-g-900: #f8fafc;
+  --login-primary-soft-bg: color-mix(in srgb, var(--login-primary) 14%, #111816);
+  --login-primary-soft-border: color-mix(in srgb, var(--login-primary) 30%, rgb(255 255 255 / 10%));
+  --login-focus-ring: color-mix(in srgb, var(--login-primary) 22%, transparent);
+  --login-bg: #0b1110;
+  --login-panel-bg: #0f1514;
+  --login-title-color: #f8fafc;
+  --login-subtitle-color: #94a3b8;
+  --login-input-bg: #111816;
+  --login-toolbar-bg: rgb(17 24 22 / 92%);
+  --login-toolbar-border: rgb(255 255 255 / 10%);
+  --login-toolbar-shadow: 0 10px 28px rgb(0 0 0 / 24%);
+  --login-toolbar-icon: #e5e7eb;
+  --login-left-bg: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--login-primary) 8%, #08110f) 0%,
+    #0f1b18 52%,
+    color-mix(in srgb, var(--login-primary) 18%, #10261f) 100%
+  );
+  --login-brand-color: #e5f8f1;
+  --login-illustration-blend: normal;
+  color-scheme: dark;
+}
+
+.login-form-side {
+  color: var(--login-title-color);
+  background-color: var(--login-panel-bg);
+}
+
 /* 授权页右侧区域 */
 .auth-right-wrap {
   @apply absolute inset-0 w-[440px] h-[650px] py-[5px] m-auto overflow-hidden
@@ -11,16 +94,73 @@
     @apply h-full py-[40px];
   }
 
+  .entry-badge {
+    @apply mb-4 inline-flex h-7 items-center rounded-full px-3 text-xs font-medium;
+
+    color: var(--login-primary);
+    background-color: var(--login-primary-soft-bg);
+  }
+
   .title {
     @apply text-g-900 text-4xl font-semibold max-md:text-3xl max-sm:pt-10;
+
+    line-height: 1.2;
+    color: var(--login-title-color);
   }
 
   .sub-title {
     @apply mt-[10px] text-g-600 text-sm;
+
+    color: var(--login-subtitle-color);
   }
 
   .custom-height {
     @apply !h-[40px];
+  }
+
+  .el-input__wrapper {
+    background-color: var(--login-input-bg);
+    border: 1px solid var(--login-primary-soft-border);
+    box-shadow: none;
+  }
+
+  .el-input__wrapper.is-focus {
+    border-color: var(--login-primary);
+    box-shadow: 0 0 0 3px var(--login-focus-ring);
+  }
+
+  .el-input-group__append {
+    padding: 0 10px;
+    overflow: hidden;
+    background-color: var(--login-input-bg);
+    border-color: var(--login-primary-soft-border);
+    box-shadow: none;
+  }
+
+  .el-input-group__append img {
+    display: block;
+    width: 118px;
+    object-fit: contain;
+  }
+
+  .el-button--primary {
+    color: #fff;
+    background: var(--login-primary);
+    border: 0;
+    box-shadow: 0 10px 22px var(--login-focus-ring);
+  }
+
+  .el-button--primary:hover {
+    background: var(--login-primary-hover);
+  }
+
+  .el-checkbox__input.is-checked .el-checkbox__inner {
+    background-color: var(--login-primary);
+    border-color: var(--login-primary);
+  }
+
+  .el-checkbox__input.is-checked + .el-checkbox__label {
+    color: var(--login-primary);
   }
 }
 

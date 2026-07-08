@@ -32,15 +32,17 @@
     en: en
   }
 
-  const getRouteAppId = () => {
-    const appId = route.query.app_id
-    return Array.isArray(appId) ? appId[0] || '' : String(appId || '')
+  const getRouteEnterpriseCode = () => {
+    const enterpriseCode = route.query.enterprise_code
+    return Array.isArray(enterpriseCode)
+      ? enterpriseCode[0] || ''
+      : String(enterpriseCode || '')
   }
 
   const loadCurrentSiteInfo = () => {
-    const appId = getRouteAppId()
+    const enterpriseCode = getRouteEnterpriseCode()
     siteStore
-      .loadSiteInfo(Boolean(appId), appId)
+      .loadSiteInfo(Boolean(enterpriseCode), enterpriseCode)
       .then(() => {
         setPageTitle(router.currentRoute.value)
       })
@@ -59,7 +61,7 @@
   })
 
   watch(
-    () => route.query.app_id,
+    () => route.query.enterprise_code,
     () => {
       if (!isRouteReady) {
         return

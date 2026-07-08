@@ -68,20 +68,12 @@ axiosInstance.interceptors.request.use(
     const { accessToken } = useUserStore()
     if (accessToken) request.headers.set('Authorization', `Bearer ` + accessToken)
 
-    // 实时从 siteStore 读取 App-Id，避免页面刷新后内存变量丢失
-    // domain 模式：app-id 是通过域名交换后由后端返回的真实 id（info.id）
-    //   - 已交换：优先使用 info.id（真实 app-id）
-    //   - 未交换：使用 location.host（域名）作为临时查询参数
-    // appid 模式：直接使用 params.appid 或 info.id
+    // 实时从 siteStore 读取 App-Id，避免页面刷新后内存变量丢失。
+    // App-Id 是后续业务接口使用的机构隔离 ID；应用信息入口使用企业码或域名解析。
     const siteStore = useSiteStore()
-    const appMode = import.meta.env.VITE_APP_MODE || 'appid'
-    let appid = ''
-    if (appMode === 'domain') {
-      appid = siteStore.info?.id ? String(siteStore.info.id) : location.host
-    } else {
-      appid = siteStore.params?.appid || (siteStore.info?.id ? String(siteStore.info.id) : '')
-    }
-    if (appid) request.headers.set('App-Id', appid)
+    const organization = siteStore.info?.id ? String(siteStore.info.id) : ''
+    const isAppInfoRequest = request.url?.includes('/saimulti/appInfo')
+    if (!isAppInfoRequest && organization) request.headers.set('App-Id', organization)
 
     if (request.data && !(request.data instanceof FormData) && !request.headers['Content-Type']) {
       request.headers.set('Content-Type', 'application/json')

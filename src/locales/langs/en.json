@@ -139,17 +139,24 @@
   },
   "login": {
     "leftView": {
-      "title": "A backend system of beauty and efficiency",
-      "subTitle": "A sleek and practical interface for a great user experience"
+      "title": "Tenant IM operations console",
+      "subTitle": "Enter by enterprise code. Data is isolated by organization",
+      "points": {
+        "users": "Organization users",
+        "messages": "IM operations",
+        "organization": "Tenant data"
+      }
     },
-    "title": "Welcome back",
-    "subTitle": "Please enter your account and password to login",
+    "entryLabel": "Tenant console",
+    "title": "Sign in to tenant console",
+    "subTitle": "Enter this organization's administrator account and verification code",
     "roles": {
       "super": "Super Admin",
       "admin": "Admin",
       "user": "User"
     },
     "placeholder": {
+      "enterpriseCode": "Please enter enterprise code",
       "username": "Please enter your account",
       "password": "Please enter your password",
       "code": "Please enter the verification code",

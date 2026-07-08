@@ -6,7 +6,7 @@
 </template>
 
 <script setup lang="ts">
-  import defaultLogo from '@imgs/common/logo.png'
+  import defaultLogo from '@imgs/common/b8im-logo.svg'
   import { useSiteStore } from '@/store/modules/site'
 
   defineOptions({ name: 'ArtLogo' })
