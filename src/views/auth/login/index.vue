@@ -33,6 +33,7 @@
                 class="custom-height"
                 :placeholder="$t('login.placeholder.username')"
                 v-model.trim="formData.username"
+                :disabled="!siteStore.loaded || siteLoading"
               />
             </ElFormItem>
             <ElFormItem prop="password">
@@ -43,6 +44,7 @@
                 type="password"
                 autocomplete="off"
                 show-password
+                :disabled="!siteStore.loaded || siteLoading"
               />
             </ElFormItem>
             <ElFormItem prop="code">
@@ -52,6 +54,7 @@
                 v-model.trim="formData.code"
                 type="text"
                 autocomplete="off"
+                :disabled="!siteStore.loaded || siteLoading"
               >
                 <template #append>
                   <img
@@ -157,9 +160,9 @@
   const loading = ref(false)
   const siteLoading = ref(false)
 
-  onMounted(() => {
+  onMounted(async () => {
     syncEnterpriseCodeInput()
-    refreshCaptcha()
+    await refreshCaptcha()
   })
 
   watch(
@@ -232,6 +235,17 @@
 
   // 获取验证码
   const refreshCaptcha = async () => {
+    if (!siteStore.loaded) {
+      if (requiresEnterpriseCode.value && !formData.enterpriseCode.trim()) {
+        return
+      }
+      try {
+        await resolveEnterpriseCode()
+      } catch {
+        return
+      }
+    }
+
     fetchCaptcha().then((res) => {
       formData.uuid = res.uuid
       captcha.value = res.image
@@ -240,9 +254,7 @@
 
   const getRouteEnterpriseCode = () => {
     const enterpriseCode = route.query.enterprise_code
-    return Array.isArray(enterpriseCode)
-      ? enterpriseCode[0] || ''
-      : String(enterpriseCode || '')
+    return Array.isArray(enterpriseCode) ? enterpriseCode[0] || '' : String(enterpriseCode || '')
   }
 
   const getStoredEnterpriseCode = () =>
@@ -274,6 +286,9 @@
 
   const resolveEnterpriseCode = async () => {
     if (!requiresEnterpriseCode.value) {
+      if (!siteStore.loaded) {
+        await siteStore.loadSiteInfo(true)
+      }
       return
     }
 
@@ -285,7 +300,7 @@
 
     const isResolved =
       siteStore.loaded &&
-      Boolean(siteStore.info.id) &&
+      Boolean(siteStore.info.organization) &&
       siteStore.params.enterprise_code === enterpriseCode
 
     if (!isResolved) {
@@ -302,6 +317,7 @@
     try {
       siteLoading.value = true
       await resolveEnterpriseCode()
+      await refreshCaptcha()
     } catch {
       // request 统一错误提示已处理，这里只避免 blur 触发未捕获异常。
     } finally {

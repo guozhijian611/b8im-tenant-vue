@@ -75,13 +75,32 @@ declare namespace Api {
   namespace Auth {
     /** 站点信息响应 */
     interface siteInfoResponse {
-      id: number
-      title: string
-      logo: string
-      status: string
-      domain: string
+      organization: number
+      deployment_id: string
       enterprise_code: string
-      group_id: number
+      config_version: number
+      updated_at: string
+      site_name: string
+      logo: string
+      favicon: string
+      icp: string
+      public_security_record_no: string
+      public_security_record_url: string
+      copyright: string
+      download: {
+        android: string
+        ios: string
+      }
+      server_info: {
+        api_server_url: string
+        im_server_url: string
+        upload_server_url: string
+        web_server_url: string
+      }
+      agreements: {
+        user_agreement: { title: string; content: string }
+        privacy_policy: { title: string; content: string }
+      }
     }
 
     /** 验证码参数 */

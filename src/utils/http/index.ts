@@ -21,6 +21,7 @@ import { ApiStatus } from './status'
 import { HttpError, handleError, showError, showSuccess } from './error'
 import { $t } from '@/locales'
 import { BaseResponse } from '@/types'
+import { getRuntimeApiBaseUrl, tokenMatchesRuntimeDeployment } from '@/config/runtime-endpoints'
 
 /** 请求配置常量 */
 const REQUEST_TIMEOUT = 15000
@@ -65,14 +66,20 @@ const axiosInstance = axios.create({
 /** 请求拦截器 */
 axiosInstance.interceptors.request.use(
   (request: InternalAxiosRequestConfig) => {
+    const isAppInfoRequest = request.url?.includes('/saimulti/appInfo')
+    request.baseURL = isAppInfoRequest ? VITE_API_URL : getRuntimeApiBaseUrl() || VITE_API_URL
+
     const { accessToken } = useUserStore()
-    if (accessToken) request.headers.set('Authorization', `Bearer ` + accessToken)
+    if (!isAppInfoRequest && accessToken && tokenMatchesRuntimeDeployment(accessToken)) {
+      request.headers.set('Authorization', `Bearer ` + accessToken)
+    } else {
+      request.headers.delete('Authorization')
+    }
 
     // 实时从 siteStore 读取 App-Id，避免页面刷新后内存变量丢失。
     // App-Id 是后续业务接口使用的机构隔离 ID；应用信息入口使用企业码或域名解析。
     const siteStore = useSiteStore()
-    const organization = siteStore.info?.id ? String(siteStore.info.id) : ''
-    const isAppInfoRequest = request.url?.includes('/saimulti/appInfo')
+    const organization = siteStore.loaded ? String(siteStore.info?.organization || '') : ''
     if (!isAppInfoRequest && organization) request.headers.set('App-Id', organization)
 
     if (request.data && !(request.data instanceof FormData) && !request.headers['Content-Type']) {
