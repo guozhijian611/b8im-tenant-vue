@@ -101,6 +101,44 @@ export async function ensureDynamicRoutesReady(
   return routeInitPromise
 }
 
+/**
+ * 重新拉取菜单并原子替换当前登录用户的动态路由。
+ *
+ * 模块启停后不能继续沿用登录时的菜单快照；先完成新菜单请求与校验，
+ * 再移除旧路由，避免请求失败时把当前 SPA 留在空路由状态。
+ */
+export async function refreshDynamicRoutes(router: Router): Promise<AppRouteRecord[]> {
+  ensureRouteRegistry(router)
+
+  await fetchUserInfo()
+  await fetchDictList()
+
+  const menuList = await menuProcessor.getMenuList()
+  if (!menuProcessor.validateMenuList(menuList)) {
+    throw new Error('Failed to refresh menu list, please login again.')
+  }
+
+  const menuStore = useMenuStore()
+  routeRegistry?.unregister()
+  menuStore.clearRemoveRouteFns()
+  IframeRouteManager.getInstance().clear()
+
+  routeRegistry?.register(menuList)
+  menuStore.setMenuList(menuList)
+  menuStore.addRemoveRouteFns(routeRegistry?.getRemoveRouteFns() || [])
+  IframeRouteManager.getInstance().save()
+  useWorktabStore().validateWorktabs(router)
+  resetRouteInitState()
+
+  const currentRoute = router.currentRoute.value
+  if (!isStaticRoute(currentRoute.path) && !isRegisteredRouteTarget(router, currentRoute)) {
+    const fallbackPath = menuStore.getHomePath() || findDefaultMenuPath(menuList) || '/'
+    await router.replace({ path: fallbackPath, replace: true })
+  }
+
+  return menuList
+}
+
 function ensureRouteRegistry(router: Router): void {
   if (!routeRegistry) {
     routeRegistry = new RouteRegistry(router)

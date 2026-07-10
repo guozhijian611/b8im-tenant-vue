@@ -19,4 +19,4 @@ export function initRouter(app: App<Element>): void {
 
 export const HOME_PAGE_PATH = ''
 
-export { ensureDynamicRoutesReady } from './guards/beforeEach'
+export { ensureDynamicRoutesReady, refreshDynamicRoutes } from './guards/beforeEach'

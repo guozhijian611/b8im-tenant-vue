@@ -4,12 +4,38 @@
       <ElTabPane name="1" label="基础设置">
         <div class="art-card-sm p-4">
           <ElForm ref="formRef" :model="formData" :rules="rules" label-width="140px">
+            <ElDivider content-position="left">品牌与公开备案</ElDivider>
             <ElFormItem label="站点标题" prop="title">
               <ElInput v-model="formData.title" placeholder="请输入站点标题" />
             </ElFormItem>
             <ElFormItem label="站点Logo" prop="logo">
               <SaImagePicker v-model="formData.logo" />
             </ElFormItem>
+            <ElFormItem label="Favicon" prop="favicon">
+              <SaImagePicker v-model="formData.favicon" />
+            </ElFormItem>
+            <ElFormItem label="ICP 备案号" prop="icp">
+              <ElInput v-model="formData.icp" placeholder="可选" />
+            </ElFormItem>
+            <ElFormItem label="公安备案号" prop="public_security_record_no">
+              <ElInput v-model="formData.public_security_record_no" placeholder="可选" />
+            </ElFormItem>
+            <ElFormItem label="公安备案链接" prop="public_security_record_url">
+              <ElInput v-model="formData.public_security_record_url" placeholder="https://..." />
+            </ElFormItem>
+            <ElFormItem label="版权信息" prop="copyright">
+              <ElInput v-model="formData.copyright" placeholder="显示在登录页底部" />
+            </ElFormItem>
+
+            <ElDivider content-position="left">App 下载入口</ElDivider>
+            <ElFormItem label="Android 下载地址" prop="android_download_url">
+              <ElInput v-model="formData.android_download_url" placeholder="https://..." />
+            </ElFormItem>
+            <ElFormItem label="iOS 下载地址" prop="ios_download_url">
+              <ElInput v-model="formData.ios_download_url" placeholder="https://..." />
+            </ElFormItem>
+
+            <ElDivider content-position="left">机构资料</ElDivider>
             <ElFormItem label="机构名称" prop="organization_name">
               <ElInput v-model="formData.organization_name" placeholder="请输入机构名称" />
             </ElFormItem>
@@ -30,6 +56,20 @@
             </ElFormItem>
             <ElFormItem label="备注" prop="remark">
               <ElInput v-model="formData.remark" type="textarea" placeholder="请输入备注" />
+            </ElFormItem>
+
+            <ElDivider content-position="left">登录前协议</ElDivider>
+            <ElFormItem label="用户协议标题" prop="user_agreement_title">
+              <ElInput v-model="formData.user_agreement_title" />
+            </ElFormItem>
+            <ElFormItem label="用户协议正文" prop="user_agreement_content">
+              <ElInput v-model="formData.user_agreement_content" type="textarea" :rows="8" />
+            </ElFormItem>
+            <ElFormItem label="隐私政策标题" prop="privacy_policy_title">
+              <ElInput v-model="formData.privacy_policy_title" />
+            </ElFormItem>
+            <ElFormItem label="隐私政策正文" prop="privacy_policy_content">
+              <ElInput v-model="formData.privacy_policy_content" type="textarea" :rows="8" />
             </ElFormItem>
             <ElFormItem>
               <ElButton
@@ -107,9 +147,19 @@
   const activeName = ref('1')
 
   const formData = reactive({
-    id: '',
     title: '',
     logo: '',
+    favicon: '',
+    icp: '',
+    public_security_record_no: '',
+    public_security_record_url: '',
+    copyright: '',
+    android_download_url: '',
+    ios_download_url: '',
+    user_agreement_title: '用户协议',
+    user_agreement_content: '',
+    privacy_policy_title: '隐私政策',
+    privacy_policy_content: '',
     region: [] as Array<string | number>,
     province: '',
     city: '',
@@ -138,7 +188,12 @@
   const rules = reactive<FormRules>({
     title: [{ required: true, message: '请输入站点标题', trigger: 'blur' }],
     logo: [{ required: true, message: '请上传站点logo', trigger: 'change' }],
-    organization_name: [{ required: true, message: '请输入机构名称', trigger: 'blur' }]
+    organization_name: [{ required: true, message: '请输入机构名称', trigger: 'blur' }],
+    public_security_record_url: [
+      { type: 'url', message: '请输入完整的公安备案链接', trigger: 'blur' }
+    ],
+    android_download_url: [{ type: 'url', message: '请输入完整下载地址', trigger: 'blur' }],
+    ios_download_url: [{ type: 'url', message: '请输入完整下载地址', trigger: 'blur' }]
   })
 
   const handleSubmit = async () => {
@@ -146,9 +201,28 @@
     try {
       await formRef.value.validate()
       loadingService.showLoading()
+      const current = toRaw(formData)
       await api.saveBasic({
-        ...toRaw(formData),
-        region: [...formData.region]
+        title: current.title,
+        logo: current.logo,
+        favicon: current.favicon,
+        icp: current.icp,
+        public_security_record_no: current.public_security_record_no,
+        public_security_record_url: current.public_security_record_url,
+        copyright: current.copyright,
+        android_download_url: current.android_download_url,
+        ios_download_url: current.ios_download_url,
+        user_agreement_title: current.user_agreement_title,
+        user_agreement_content: current.user_agreement_content,
+        privacy_policy_title: current.privacy_policy_title,
+        privacy_policy_content: current.privacy_policy_content,
+        organization_name: current.organization_name,
+        region: [...current.region],
+        address: current.address,
+        contact_name: current.contact_name,
+        contact_phone: current.contact_phone,
+        contact_email: current.contact_email,
+        remark: current.remark
       })
       ElMessage.success('保存成功')
     } catch (error) {
