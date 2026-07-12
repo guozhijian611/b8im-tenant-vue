@@ -1,0 +1,13 @@
+.git
+.github
+.idea
+.vscode
+.DS_Store
+.env.local
+.env.*.local
+Dockerfile*
+node_modules
+dist
+coverage
+*.log
+*.tmp
