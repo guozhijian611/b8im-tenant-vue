@@ -50,8 +50,8 @@ const createSiteInfoParams = (enterpriseCode = ''): SiteInfoParams => {
 
 const toDiscoveryParams = (selection: SiteInfoParams): Record<string, string> =>
   selection.mode === 'domain'
-    ? { mode: 'domain', domain: selection.domain }
-    : { enterprise_code: selection.enterprise_code }
+    ? { mode: 'domain', domain: selection.domain, client_family: 'web' }
+    : { enterprise_code: selection.enterprise_code, client_family: 'web' }
 
 const resolveUrlSiteInfoParams = (enterpriseCode = ''): SiteInfoParams =>
   createSiteInfoParams(
@@ -92,8 +92,8 @@ export const useSiteStore = defineStore(
       return identifier
     }
 
-    const setSiteInfo = (data: Api.Auth.siteInfoResponse, selection: SiteInfoParams) => {
-      publishRuntimeDeployment(data)
+    const setSiteInfo = async (data: Api.Auth.siteInfoResponse, selection: SiteInfoParams) => {
+      await publishRuntimeDeployment(data)
       info.value = data
       loaded.value = true
       params.value =
@@ -139,8 +139,8 @@ export const useSiteStore = defineStore(
       params.value = nextParams
 
       loadingPromise = siteInfo(toDiscoveryParams(nextParams))
-        .then((data) => {
-          setSiteInfo(data, nextParams)
+        .then(async (data) => {
+          await setSiteInfo(data, nextParams)
           return data
         })
         .catch((err) => {

@@ -10,6 +10,7 @@ export interface RuntimeDeploymentContext {
   organization: number
   configVersion: number
   serverInfo: RuntimeServerInfo
+  routingVersion: number
 }
 
 let verifiedContext: RuntimeDeploymentContext | null = null
@@ -39,7 +40,7 @@ const validateNetworkUrl = (value: string, schemes: string[], field: string): st
   return value.replace(/\/+$/, '')
 }
 
-export const publishRuntimeDeployment = (data: Api.Auth.siteInfoResponse) => {
+export const publishRuntimeDeployment = async (data: Api.Auth.siteInfoResponse) => {
   if (!Number.isInteger(data.organization) || data.organization <= 0) {
     throw new Error('appInfo.organization 无效')
   }
@@ -49,25 +50,38 @@ export const publishRuntimeDeployment = (data: Api.Auth.siteInfoResponse) => {
   if (!Number.isInteger(data.config_version) || data.config_version <= 0) {
     throw new Error('appInfo.config_version 无效')
   }
+  if (data.client_family !== 'web' || data.server_info.schema_version !== 2) {
+    throw new Error('appInfo 客户端形态或 schema 无效')
+  }
+  await verifyRoutingSignature(data)
+  if (Date.parse(data.server_info.expires_at) <= Date.now()) {
+    throw new Error('appInfo 线路快照已经过期')
+  }
+  const primary = data.server_info.routes.find(
+    (route) => route.route_id === data.server_info.policy.primary_route_id
+  )
+  if (!primary || primary.deployment_id !== data.deployment_id) {
+    throw new Error('appInfo 主线路与 deployment_id 不一致')
+  }
 
   const serverInfo: RuntimeServerInfo = {
     api_server_url: validateNetworkUrl(
-      data.server_info.api_server_url,
+      primary.endpoints.api_server_url,
       ['https', 'http'],
       'api_server_url'
     ),
     im_server_url: validateNetworkUrl(
-      data.server_info.im_server_url,
+      primary.endpoints.im_server_url,
       ['wss', 'ws'],
       'im_server_url'
     ),
     upload_server_url: validateNetworkUrl(
-      data.server_info.upload_server_url,
+      primary.endpoints.upload_server_url,
       ['https', 'http'],
       'upload_server_url'
     ),
     web_server_url: validateNetworkUrl(
-      data.server_info.web_server_url,
+      primary.endpoints.web_server_url,
       ['https', 'http'],
       'web_server_url'
     )
@@ -77,8 +91,57 @@ export const publishRuntimeDeployment = (data: Api.Auth.siteInfoResponse) => {
     deploymentId: data.deployment_id,
     organization: data.organization,
     configVersion: data.config_version,
-    serverInfo
+    serverInfo,
+    routingVersion: data.server_info.routing_version
   }
+}
+
+const canonicalJson = (value: unknown): string => {
+  if (Array.isArray(value)) return `[${value.map(canonicalJson).join(',')}]`
+  if (value && typeof value === 'object') {
+    return `{${Object.entries(value as Record<string, unknown>)
+      .sort(([a], [b]) => a.localeCompare(b, 'en'))
+      .map(([key, item]) => `${JSON.stringify(key)}:${canonicalJson(item)}`)
+      .join(',')}}`
+  }
+  return JSON.stringify(value)
+}
+
+const decodeBase64Url = (value: string) => {
+  const normalized = value.replace(/-/g, '+').replace(/_/g, '/')
+  const binary = atob(normalized + '='.repeat((4 - normalized.length % 4) % 4))
+  return Uint8Array.from(binary, (character) => character.charCodeAt(0))
+}
+
+const verifyRoutingSignature = async (data: Api.Auth.siteInfoResponse) => {
+  const signature = data.routing_signature
+  if (signature.alg !== 'Ed25519' || signature.canonicalization !== 'JCS-RFC8785') {
+    throw new Error('appInfo 线路签名算法无效')
+  }
+  let keys: Record<string, string>
+  try {
+    keys = JSON.parse(import.meta.env.VITE_ROUTING_PUBLIC_KEYS || '') as Record<string, string>
+  } catch {
+    throw new Error('VITE_ROUTING_PUBLIC_KEYS 配置无效')
+  }
+  const publicKey = keys[signature.kid]
+  if (!publicKey || decodeBase64Url(publicKey).length !== 32) {
+    throw new Error(`appInfo 签名密钥 ${signature.kid} 不受信任`)
+  }
+  const key = await crypto.subtle.importKey('raw', decodeBase64Url(publicKey), 'Ed25519', false, ['verify'])
+  const valid = await crypto.subtle.verify(
+    'Ed25519',
+    key,
+    decodeBase64Url(signature.value),
+    new TextEncoder().encode(canonicalJson({
+      organization: data.organization,
+      deployment_id: data.deployment_id,
+      enterprise_code: data.enterprise_code,
+      client_family: data.client_family,
+      server_info: data.server_info
+    }))
+  )
+  if (!valid) throw new Error('appInfo 线路签名验证失败')
 }
 
 export const clearRuntimeDeployment = () => {

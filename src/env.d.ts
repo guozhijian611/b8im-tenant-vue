@@ -4,6 +4,7 @@ interface ImportMetaEnv {
   readonly VITE_APP_MODE?: string
   readonly VITE_DEFAULT_ENTERPRISE_CODE?: string
   readonly VITE_ALLOW_INSECURE_SERVER_URLS?: string
+  readonly VITE_ROUTING_PUBLIC_KEYS?: string
 }
 
 interface ImportMeta {
