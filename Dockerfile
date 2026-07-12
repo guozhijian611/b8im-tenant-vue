@@ -2,8 +2,11 @@
 
 FROM node:24-alpine AS build
 
+ARG VITE_ROUTING_PUBLIC_KEYS="{}"
+
 ENV PNPM_HOME=/pnpm \
-    PATH=/pnpm:$PATH
+    PATH=/pnpm:$PATH \
+    VITE_ROUTING_PUBLIC_KEYS=$VITE_ROUTING_PUBLIC_KEYS
 
 RUN corepack enable && corepack prepare pnpm@11.5.1 --activate
 
