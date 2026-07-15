@@ -152,21 +152,47 @@ export const getRuntimeDeployment = () => verifiedContext
 
 export const getRuntimeApiBaseUrl = () => verifiedContext?.serverInfo.api_server_url || ''
 
+/**
+ * Tinywan JwtToken puts business claims under `extend`, while top-level
+ * `iss`/`aud` are library defaults (often equal to DEPLOYMENT_ID).
+ * CheckTenantLogin also reads getExtend(), so the client must match that shape.
+ */
+const readTenantJwtClaims = (token: string): Record<string, unknown> => {
+  const encodedPayload = token.split('.')[1]
+  if (!encodedPayload) {
+    throw new Error('missing jwt payload')
+  }
+  const normalized = encodedPayload.replace(/-/g, '+').replace(/_/g, '/')
+  const padded = normalized.padEnd(Math.ceil(normalized.length / 4) * 4, '=')
+  const payloadBytes = Uint8Array.from(atob(padded), (character) => character.charCodeAt(0))
+  const payload = JSON.parse(new TextDecoder().decode(payloadBytes)) as Record<string, unknown>
+  const extend =
+    payload.extend && typeof payload.extend === 'object'
+      ? (payload.extend as Record<string, unknown>)
+      : {}
+
+  return {
+    ...payload,
+    // Prefer extend business claims over library-level iss/aud.
+    id: extend.id ?? payload.id,
+    organization: extend.organization ?? payload.organization,
+    plat: extend.plat ?? payload.plat,
+    aud: extend.aud ?? payload.aud,
+    deployment_id: extend.deployment_id ?? payload.deployment_id ?? payload.iss
+  }
+}
+
 export const tokenMatchesRuntimeDeployment = (token: string): boolean => {
   if (!verifiedContext) return false
 
   try {
-    const encodedPayload = token.split('.')[1]
-    if (!encodedPayload) return false
-    const normalized = encodedPayload.replace(/-/g, '+').replace(/_/g, '/')
-    const padded = normalized.padEnd(Math.ceil(normalized.length / 4) * 4, '=')
-    const payloadBytes = Uint8Array.from(atob(padded), (character) => character.charCodeAt(0))
-    const payload = JSON.parse(new TextDecoder().decode(payloadBytes)) as Record<string, unknown>
-    const audience = Array.isArray(payload.aud) ? payload.aud : [payload.aud]
+    const claims = readTenantJwtClaims(token)
+    const audience = Array.isArray(claims.aud) ? claims.aud : [claims.aud]
 
     return (
-      Number(payload.organization) === verifiedContext.organization &&
-      String(payload.deployment_id || payload.iss || '') === verifiedContext.deploymentId &&
+      String(claims.plat || '') === 'tenant' &&
+      Number(claims.organization) === verifiedContext.organization &&
+      String(claims.deployment_id || '') === verifiedContext.deploymentId &&
       audience.includes('tenant-api')
     )
   } catch {
