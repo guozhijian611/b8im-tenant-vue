@@ -4,6 +4,7 @@ import { nextTick } from 'vue'
 import NProgress from 'nprogress'
 import { useSettingStore } from '@/store/modules/setting'
 import { useUserStore } from '@/store/modules/user'
+import { useSiteStore } from '@/store/modules/site'
 import { useMenuStore } from '@/store/modules/menu'
 import { useDictStore } from '@/store/modules/dict'
 import { setWorktab } from '@/utils/navigation'
@@ -17,6 +18,7 @@ import { fetchGetUserInfo, fetchGetDictList } from '@/api/auth'
 import { ApiStatus } from '@/utils/http/status'
 import { isHttpError } from '@/utils/http/error'
 import { RouteRegistry, MenuProcessor, IframeRouteManager } from '../core'
+import { ensureTenantRuntimeReady } from './runtimeReady'
 
 let routeRegistry: RouteRegistry | null = null
 const menuProcessor = new MenuProcessor()
@@ -184,6 +186,11 @@ async function handleRouteGuard(
   if (settingStore.showNprogress) {
     NProgress.start()
   }
+
+  await ensureTenantRuntimeReady(
+    userStore.isLogin && shouldInitializeDynamicRoutes(to),
+    useSiteStore()
+  )
 
   if (!handleLoginStatus(to, userStore, next)) {
     return
