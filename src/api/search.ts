@@ -11,8 +11,5 @@ export default {
   },
   jobList(params: Record<string, any> = {}) {
     return request.get<Api.Common.ApiPage>({ url: `${prefix}/jobIndex`, params })
-  },
-  docUpsert(data: Record<string, any>) {
-    return request.post<Api.Common.ApiData>({ url: `${prefix}/docUpsert`, data })
   }
 }
