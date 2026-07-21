@@ -92,125 +92,21 @@
 
 <script setup lang="ts">
   import { ElMessage, ElMessageBox } from 'element-plus'
-  import accountPolicyApi, {
-    type TenantAccountPolicy,
-    type TenantAccountPolicyUpdate
-  } from '@/api/system/account-policy'
-  import { HttpError } from '@/utils/http/error'
+  import accountPolicyApi from '@/api/system/account-policy'
   import {
-    canSaveAccountPolicy,
-    getRegistrationPolicyChange,
-    isAccountPolicyDirty,
-    shouldConfirmPolicyReload,
-    type RegistrationPolicyChange
-  } from './account-policy-state'
+    createAccountPolicyController,
+    createAccountPolicyState
+  } from './account-policy-controller'
+  import { type RegistrationPolicyChange } from './account-policy-state'
 
   defineOptions({ name: 'TenantAccountPolicy' })
-
-  const policy = ref<TenantAccountPolicy | null>(null)
-  const loading = ref(false)
-  const saving = ref(false)
-  const loadFailed = ref(false)
-  const conflicted = ref(false)
-  const errorMessage = ref('')
-
-  const formData = reactive<TenantAccountPolicyUpdate>({
-    register_enabled: false,
-    version: 0
-  })
-
-  const dirty = computed(() =>
-    isAccountPolicyDirty(policy.value?.register_enabled ?? null, formData.register_enabled)
-  )
-
-  const saveDisabled = computed(
-    () =>
-      !canSaveAccountPolicy({
-        currentValue: policy.value?.register_enabled ?? null,
-        draftValue: formData.register_enabled,
-        conflicted: conflicted.value,
-        loadFailed: loadFailed.value,
-        saving: saving.value
-      })
-  )
-
-  const registrationNotice = computed(() =>
-    formData.register_enabled
-      ? '开放后，公网登录页将显示注册入口；当前注册仅受图形验证码和机构用户配额保护。'
-      : '关闭后，公网客户端不再允许新用户自行注册，现有账号不受影响。'
-  )
-
-  const assignPolicy = (value: TenantAccountPolicy) => {
-    policy.value = value
-    Object.assign(formData, {
-      register_enabled: value.register_enabled,
-      version: value.version
-    })
-  }
-
-  const loadPolicy = async () => {
-    loading.value = true
-    errorMessage.value = ''
-    try {
-      const response = await accountPolicyApi.read()
-      assignPolicy(response)
-      loadFailed.value = false
-      conflicted.value = false
-    } catch (error) {
-      loadFailed.value = true
-      errorMessage.value = formatError(error, '账号注册策略加载失败')
-    } finally {
-      loading.value = false
-    }
-  }
-
-  const reloadPolicy = async () => {
-    if (shouldConfirmPolicyReload(dirty.value, conflicted.value)) {
-      const confirmed = await confirmReload()
-      if (!confirmed) return
-    }
-    await loadPolicy()
-  }
-
-  const savePolicy = async () => {
-    if (saveDisabled.value) return
-    const change = getRegistrationPolicyChange(
-      policy.value?.register_enabled ?? null,
-      formData.register_enabled
-    )
-    if (!change || !(await confirmChange(change))) return
-
-    saving.value = true
-    errorMessage.value = ''
-    try {
-      const response = await accountPolicyApi.update({
-        register_enabled: formData.register_enabled,
-        version: formData.version
-      })
-      assignPolicy(response)
-      conflicted.value = false
-      loadFailed.value = false
-      ElMessage.success('账号注册策略已保存')
-    } catch (error) {
-      if (error instanceof HttpError && error.code === 409) {
-        conflicted.value = true
-        errorMessage.value = '策略版本已变化，本次保存未执行。'
-        ElMessage.warning('其他管理员已更新该策略，请重新加载最新版本')
-      } else {
-        errorMessage.value = formatError(error, '账号注册策略保存失败')
-        ElMessage.error(errorMessage.value)
-      }
-    } finally {
-      saving.value = false
-    }
-  }
 
   const confirmChange = async (change: RegistrationPolicyChange): Promise<boolean> => {
     const enabling = change === 'enable'
     try {
       await ElMessageBox.confirm(
         enabling
-          ? '开放后，公网登录页将显示注册入口。当前注册仅受图形验证码和机构用户配额保护，确认开放吗？'
+          ? '开放后，公网登录页将显示注册入口。当前已有图形验证码、注册字段与确认密码规则、同机构账号唯一、机构有效性和用户配额校验；尚无邀请码、邮件/短信验证和实名认证。确认开放吗？'
           : '关闭后，公网客户端将无法创建新账号，现有账号不受影响，确认关闭吗？',
         enabling ? '确认开放公网注册' : '确认关闭公网注册',
         {
@@ -242,14 +138,29 @@
     }
   }
 
-  const formatError = (error: unknown, fallback: string) => {
-    if (error instanceof HttpError) {
-      if (error.code === 404) return '当前机构的账号注册策略尚未初始化。'
-      if (error.code === 403) return '当前账号没有读取或维护该策略的权限。'
-      return error.message || fallback
+  const state = reactive(createAccountPolicyState())
+  const controller = createAccountPolicyController({
+    state,
+    api: accountPolicyApi,
+    confirmChange,
+    confirmReload,
+    notifications: {
+      success: ElMessage.success,
+      warning: ElMessage.warning,
+      error: ElMessage.error
     }
-    return error instanceof Error ? error.message : fallback
-  }
+  })
+
+  const { policy, loading, saving, loadFailed, conflicted, errorMessage } = toRefs(state)
+  const formData = state.formData
+  const saveDisabled = computed(() => !controller.canSave())
+  const registrationNotice = computed(() =>
+    formData.register_enabled
+      ? '开放后，公网登录页将显示注册入口。当前已有图形验证码、注册字段与确认密码规则、同机构账号唯一、机构有效性和用户配额校验；尚无邀请码、邮件/短信验证和实名认证。'
+      : '关闭后，公网客户端不再允许新用户自行注册，现有账号不受影响。'
+  )
+
+  const { loadPolicy, reloadPolicy, savePolicy } = controller
 
   onMounted(loadPolicy)
 </script>
