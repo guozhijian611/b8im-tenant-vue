@@ -2,10 +2,18 @@
   <div class="art-full-height">
     <ElCard class="art-table-card" shadow="never" style="margin-bottom: 16px">
       <template #header>存储配额</template>
-      <ElDescriptions v-if="quota" :column="2" border>
-        <ElDescriptionsItem label="已用/上限">
-          {{ formatBytes(quota.used_storage_bytes) }} /
-          {{ formatBytes(quota.max_storage_bytes) }}
+      <ElAlert
+        title="机构总存储配额由平台套餐或平台管理员统一配置，租户端仅可查看。"
+        type="info"
+        :closable="false"
+        style="margin-bottom: 12px"
+      />
+      <ElDescriptions v-if="quota" :column="3" border>
+        <ElDescriptionsItem label="平台下发存储上限">
+          {{ formatStorageLimit(quota.max_storage_bytes) }}
+        </ElDescriptionsItem>
+        <ElDescriptionsItem label="当前已用">
+          {{ formatBytes(quota.used_storage_bytes) }}
           ({{ Math.round(Number(quota.usage_ratio || 0) * 100) }}%)
         </ElDescriptionsItem>
         <ElDescriptionsItem label="文件数">{{ quota.used_file_count }}</ElDescriptionsItem>
@@ -16,6 +24,9 @@
           {{ Number(quota.large_file_enabled) === 1 ? '开' : '关' }} /
           {{ Number(quota.preview_enabled) === 1 ? '开' : '关' }}
         </ElDescriptionsItem>
+        <ElDescriptionsItem label="文件服务状态">
+          {{ Number(quota.status) === 1 ? '启用' : '停用' }}
+        </ElDescriptionsItem>
       </ElDescriptions>
       <div style="margin-top: 12px">
         <ElButton
@@ -23,7 +34,7 @@
           type="primary"
           @click="openQuota"
         >
-          编辑策略
+          编辑租户策略
         </ElButton>
       </div>
     </ElCard>
@@ -92,11 +103,8 @@
       </ElTabs>
     </ElCard>
 
-    <ElDialog v-model="quotaVisible" title="编辑配额策略" width="520px" align-center>
+    <ElDialog v-model="quotaVisible" title="编辑租户文件策略" width="520px" align-center>
       <ElForm :model="quotaForm" label-width="140px">
-        <ElFormItem label="存储上限(字节)">
-          <ElInput v-model="quotaForm.max_storage_bytes" />
-        </ElFormItem>
         <ElFormItem label="单文件上限(字节)">
           <ElInput v-model="quotaForm.max_file_bytes" />
         </ElFormItem>
@@ -105,6 +113,9 @@
         </ElFormItem>
         <ElFormItem label="预览">
           <ElSwitch v-model="quotaForm.preview_enabled" :active-value="1" :inactive-value="0" />
+        </ElFormItem>
+        <ElFormItem label="文件服务状态">
+          <ElSwitch v-model="quotaForm.status" :active-value="1" :inactive-value="0" />
         </ElFormItem>
       </ElForm>
       <template #footer>
@@ -169,12 +180,13 @@
   import { ElMessage } from 'element-plus'
   import { useTable } from '@/hooks/useTable'
   import api from '@/api/file-media'
+  import type { FileMediaQuota } from '@/api/file-media'
 
   const activeTab = ref('folder')
-  const quota = ref<Record<string, any> | null>(null)
+  const quota = ref<FileMediaQuota | null>(null)
 
   const loadQuota = async () => {
-    quota.value = (await api.quotaRead()) as any
+    quota.value = await api.quotaRead()
   }
   onMounted(loadQuota)
 
@@ -186,22 +198,23 @@
     if (v < 1024 ** 3) return `${(v / 1024 ** 2).toFixed(1)} MB`
     return `${(v / 1024 ** 3).toFixed(2)} GB`
   }
+  const formatStorageLimit = (n: number) => (Number(n) === 0 ? '不限' : formatBytes(n))
 
   const quotaVisible = ref(false)
   const quotaSaving = ref(false)
   const quotaForm = reactive({
-    max_storage_bytes: '',
     max_file_bytes: '',
     large_file_enabled: 1,
-    preview_enabled: 1
+    preview_enabled: 1,
+    status: 1
   })
   const openQuota = () => {
     if (!quota.value) return
     Object.assign(quotaForm, {
-      max_storage_bytes: String(quota.value.max_storage_bytes ?? ''),
       max_file_bytes: String(quota.value.max_file_bytes ?? ''),
       large_file_enabled: Number(quota.value.large_file_enabled ?? 1),
-      preview_enabled: Number(quota.value.preview_enabled ?? 1)
+      preview_enabled: Number(quota.value.preview_enabled ?? 1),
+      status: Number(quota.value.status ?? 1)
     })
     quotaVisible.value = true
   }
@@ -209,10 +222,10 @@
     quotaSaving.value = true
     try {
       await api.quotaUpdate({
-        max_storage_bytes: Number(quotaForm.max_storage_bytes),
         max_file_bytes: Number(quotaForm.max_file_bytes),
         large_file_enabled: quotaForm.large_file_enabled,
-        preview_enabled: quotaForm.preview_enabled
+        preview_enabled: quotaForm.preview_enabled,
+        status: quotaForm.status
       })
       ElMessage.success('已保存')
       quotaVisible.value = false
