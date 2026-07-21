@@ -49,7 +49,6 @@
 </template>
 
 <script setup lang="ts">
-  import commonApi from '@/api/common'
   import api from '../../../api/cms/banner'
   import { ElMessage } from 'element-plus'
   import type { FormInstance, FormRules } from 'element-plus'
@@ -74,10 +73,6 @@
   const emit = defineEmits<Emits>()
 
   const formRef = ref<FormInstance>()
-  const optionData = reactive({
-    treeData: <any[]>[],
-  })
-
   /**
    * 弹窗显示状态双向绑定
    */
@@ -91,7 +86,7 @@
    */
   const rules = reactive<FormRules>({
     banner_type: [{ required: true, message: '类型必需填写', trigger: 'blur' }],
-    title: [{ required: true, message: '标题必需填写', trigger: 'blur' }],
+    title: [{ required: true, message: '标题必需填写', trigger: 'blur' }]
   })
 
   /**
@@ -104,7 +99,7 @@
     url: '',
     status: 1,
     sort: 1,
-    id: null,
+    id: null
   }
 
   /**

@@ -207,7 +207,6 @@
     columnChecks,
     data,
     loading,
-    getData,
     pagination,
     handleSizeChange,
     handleCurrentChange,
@@ -381,7 +380,9 @@
   }
 
   const deleteEntry = async (row: Record<string, any>) => {
-    await ElMessageBox.confirm(`确认删除词条「${row.msg_key}」吗？`, '删除词条', { type: 'warning' })
+    await ElMessageBox.confirm(`确认删除词条「${row.msg_key}」吗？`, '删除词条', {
+      type: 'warning'
+    })
     await api.entryDelete({ ids: [row.id] })
     ElMessage.success('删除成功')
     refreshEntry()

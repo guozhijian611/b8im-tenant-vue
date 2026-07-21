@@ -70,7 +70,7 @@
     <ElDialog v-model="detailVisible" title="收藏详情" width="640px" align-center>
       <ElDescriptions v-if="detail" :column="1" border>
         <ElDescriptionsItem label="编号">{{ detail.id }}</ElDescriptionsItem>
-                <ElDescriptionsItem label="用户">{{ detail.user_id }}</ElDescriptionsItem>
+        <ElDescriptionsItem label="用户">{{ detail.user_id }}</ElDescriptionsItem>
         <ElDescriptionsItem label="类型">{{ typeLabel(detail.target_type) }}</ElDescriptionsItem>
         <ElDescriptionsItem label="目标ID">{{ detail.target_id }}</ElDescriptionsItem>
         <ElDescriptionsItem label="标题">{{ detail.title }}</ElDescriptionsItem>
@@ -88,8 +88,8 @@
 
   const searchForm = reactive({
     keyword: '',
-    target_type: undefined as string | undefined,
-      })
+    target_type: undefined as string | undefined
+  })
 
   const {
     columns,
@@ -108,7 +108,7 @@
       columnsFactory: () => [
         { type: 'selection' },
         { prop: 'id', label: '编号', width: 90, align: 'center' },
-                { prop: 'user_id', label: '用户', minWidth: 120 },
+        { prop: 'user_id', label: '用户', minWidth: 120 },
         { prop: 'target_type', label: '类型', width: 100, useSlot: true },
         { prop: 'target_id', label: '目标ID', minWidth: 140, showOverflowTooltip: true },
         { prop: 'title', label: '标题', minWidth: 160, showOverflowTooltip: true },
@@ -127,8 +127,8 @@
   const doSearch = () => {
     Object.assign(searchParams, {
       keyword: searchForm.keyword || undefined,
-      target_type: searchForm.target_type || undefined,
-          })
+      target_type: searchForm.target_type || undefined
+    })
     getData()
   }
 

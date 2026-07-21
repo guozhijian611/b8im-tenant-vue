@@ -86,7 +86,7 @@
   const searchForm = ref({
     category_id: undefined,
     title: undefined,
-    status: undefined,
+    status: undefined
   })
 
   // 搜索处理
@@ -145,5 +145,4 @@
     dialogVisible: viewDialogVisible,
     dialogData: viewDialogData
   } = useSaiAdmin()
-
 </script>

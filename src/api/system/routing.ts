@@ -11,7 +11,11 @@ export interface TenantRoutingResult {
     route_pool_version: number
     routing_version: number
     expires_at: string
-    policy: { mode: 'single' | 'primary_backup'; primary_route_id: string; backup_route_ids: string[] }
+    policy: {
+      mode: 'single' | 'primary_backup'
+      primary_route_id: string
+      backup_route_ids: string[]
+    }
     routes: Array<{
       route_id: string
       route_version: number

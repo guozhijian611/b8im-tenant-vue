@@ -18,7 +18,11 @@
         </ElDescriptionsItem>
       </ElDescriptions>
       <div style="margin-top: 12px">
-        <ElButton v-permission="'saimulti:tenant:file_media:quota'" type="primary" @click="openQuota">
+        <ElButton
+          v-permission="'saimulti:tenant:file_media:quota'"
+          type="primary"
+          @click="openQuota"
+        >
           编辑策略
         </ElButton>
       </div>
@@ -27,9 +31,16 @@
     <ElCard class="art-table-card" shadow="never">
       <ElTabs v-model="activeTab">
         <ElTabPane label="目录" name="folder">
-          <ArtTableHeader v-model:columns="folderColumnChecks" :loading="folderLoading" @refresh="refreshFolders">
+          <ArtTableHeader
+            v-model:columns="folderColumnChecks"
+            :loading="folderLoading"
+            @refresh="refreshFolders"
+          >
             <template #left>
-              <ElButton v-permission="'saimulti:tenant:file_media:space'" @click="showFolderDialog('add')">
+              <ElButton
+                v-permission="'saimulti:tenant:file_media:space'"
+                @click="showFolderDialog('add')"
+              >
                 新建目录
               </ElButton>
             </template>
@@ -52,9 +63,13 @@
           </ArtTable>
         </ElTabPane>
         <ElTabPane label="文件" name="item">
-          <ArtTableHeader v-model:columns="itemColumnChecks" :loading="itemLoading" @refresh="refreshItems">
+          <ArtTableHeader
+            v-model:columns="itemColumnChecks"
+            :loading="itemLoading"
+            @refresh="refreshItems"
+          >
             <template #left>
-              <ElButton v-permission="'saimulti:tenant:file_media:space'" @click="showItemDialog('add')">
+              <ElButton v-permission="'saimulti:tenant:file_media:space'" @click="showItemDialog">
                 登记文件
               </ElButton>
             </template>
@@ -98,7 +113,12 @@
       </template>
     </ElDialog>
 
-    <ElDialog v-model="folderVisible" :title="folderType === 'add' ? '新建目录' : '编辑目录'" width="480px" align-center>
+    <ElDialog
+      v-model="folderVisible"
+      :title="folderType === 'add' ? '新建目录' : '编辑目录'"
+      width="480px"
+      align-center
+    >
       <ElForm :model="folderForm" label-width="100px">
         <ElFormItem label="名称">
           <ElInput v-model="folderForm.name" />
@@ -243,7 +263,11 @@
       if (folderType.value === 'add') {
         await api.folderCreate({ name: folderForm.name, parent_id: folderForm.parent_id })
       } else {
-        await api.folderUpdate({ id: folderForm.id, name: folderForm.name, parent_id: folderForm.parent_id })
+        await api.folderUpdate({
+          id: folderForm.id,
+          name: folderForm.name,
+          parent_id: folderForm.parent_id
+        })
       }
       ElMessage.success('已保存')
       folderVisible.value = false
@@ -290,7 +314,7 @@
     kind: 'file',
     folder_id: 0
   })
-  const showItemDialog = (_type: 'add') => {
+  const showItemDialog = () => {
     Object.assign(itemForm, { name: '', file_id: '', size_bytes: '', kind: 'file', folder_id: 0 })
     itemVisible.value = true
   }

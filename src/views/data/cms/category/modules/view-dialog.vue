@@ -64,7 +64,7 @@
     describe: '',
     image: '',
     sort: 100,
-    status: 1,
+    status: 1
   }
 
   /**

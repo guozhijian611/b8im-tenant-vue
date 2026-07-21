@@ -27,7 +27,12 @@
         </el-col>
         <el-col :span="24">
           <el-form-item label="分类简介" prop="describe">
-            <el-input v-model="formData.describe" type="textarea" :rows="2" placeholder="请输入分类简介" />
+            <el-input
+              v-model="formData.describe"
+              type="textarea"
+              :rows="2"
+              placeholder="请输入分类简介"
+            />
           </el-form-item>
         </el-col>
         <el-col :span="24">
@@ -55,7 +60,6 @@
 </template>
 
 <script setup lang="ts">
-  import commonApi from '@/api/common'
   import api from '../../../api/cms/category'
   import { ElMessage } from 'element-plus'
   import type { FormInstance, FormRules } from 'element-plus'
@@ -81,7 +85,7 @@
 
   const formRef = ref<FormInstance>()
   const optionData = reactive({
-    treeData: <any[]>[],
+    treeData: <any[]>[]
   })
 
   /**
@@ -97,7 +101,7 @@
    */
   const rules = reactive<FormRules>({
     parent_id: [{ required: true, message: '上级菜单必需填写', trigger: 'blur' }],
-    category_name: [{ required: true, message: '分类标题必需填写', trigger: 'blur' }],
+    category_name: [{ required: true, message: '分类标题必需填写', trigger: 'blur' }]
   })
 
   /**
@@ -110,7 +114,7 @@
     describe: '',
     image: '',
     sort: 100,
-    status: 1,
+    status: 1
   }
 
   /**
