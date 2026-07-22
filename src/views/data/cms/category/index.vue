@@ -94,7 +94,7 @@
   const tableRef = ref()
   // 搜索表单
   const searchForm = ref({
-    category_name: undefined,
+    category_name: undefined
   })
 
   // 搜索处理

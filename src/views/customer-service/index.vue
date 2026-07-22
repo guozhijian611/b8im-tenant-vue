@@ -5,7 +5,13 @@
         <ElTabPane label="会话" name="conversation">
           <ArtTableHeader v-model:columns="columnChecks" :loading="loading" @refresh="refreshData">
             <template #left>
-              <ElSelect v-model="status" clearable placeholder="状态" style="width: 120px" @change="doSearch">
+              <ElSelect
+                v-model="status"
+                clearable
+                placeholder="状态"
+                style="width: 120px"
+                @change="doSearch"
+              >
                 <ElOption label="排队中" value="queued" />
                 <ElOption label="已分配" value="assigned" />
                 <ElOption label="进行中" value="active" />

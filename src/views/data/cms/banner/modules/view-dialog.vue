@@ -67,7 +67,7 @@
     url: '',
     status: 1,
     sort: 1,
-    id: null,
+    id: null
   }
 
   /**

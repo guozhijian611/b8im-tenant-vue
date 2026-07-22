@@ -7,7 +7,9 @@
         <ElDescriptionsItem label="状态">{{ index.status }}</ElDescriptionsItem>
         <ElDescriptionsItem label="文档数">{{ index.doc_count }}</ElDescriptionsItem>
         <ElDescriptionsItem label="最近重建">{{ index.last_built_at || '-' }}</ElDescriptionsItem>
-        <ElDescriptionsItem label="错误" :span="2">{{ index.last_error || '-' }}</ElDescriptionsItem>
+        <ElDescriptionsItem label="错误" :span="2">{{
+          index.last_error || '-'
+        }}</ElDescriptionsItem>
       </ElDescriptions>
       <div style="margin-top: 12px">
         <ElSpace wrap>

@@ -65,7 +65,10 @@
             <template #left>
               <ElSpace wrap>
                 <span v-if="currentPackName">当前包：{{ currentPackName }}</span>
-                <ElButton v-permission="'saimulti:tenant:sticker:item'" @click="showItemDialog('add')">
+                <ElButton
+                  v-permission="'saimulti:tenant:sticker:item'"
+                  @click="showItemDialog('add')"
+                >
                   新增表情
                 </ElButton>
               </ElSpace>
@@ -181,7 +184,6 @@
     columnChecks,
     data,
     loading,
-    getData,
     pagination,
     handleSizeChange,
     handleCurrentChange,

@@ -1,25 +1,88 @@
 <template>
   <div class="art-full-height">
-    <ElCard class="art-table-card" shadow="never" style="margin-bottom: 16px">
-      <template #header>存储配额</template>
-      <ElDescriptions v-if="quota" :column="2" border>
-        <ElDescriptionsItem label="已用/上限">
-          {{ formatBytes(quota.used_storage_bytes) }} /
-          {{ formatBytes(quota.max_storage_bytes) }}
-          ({{ Math.round(Number(quota.usage_ratio || 0) * 100) }}%)
+    <ElCard
+      v-loading="quotaLoading"
+      class="art-table-card"
+      shadow="never"
+      style="margin-bottom: 16px"
+    >
+      <template #header>中央存储配额（只读）</template>
+      <ElAlert
+        title="来源：中央 StorageQuota。机构容量由平台统一配置，file_media 模块不能修改。"
+        type="info"
+        :closable="false"
+        style="margin-bottom: 12px"
+      />
+      <ElDescriptions v-if="storageQuota" :column="3" border>
+        <ElDescriptionsItem label="容量上限">
+          {{ formatQuotaByteCount(storageQuota.quota_value, storageQuota.unlimited) }}
         </ElDescriptionsItem>
-        <ElDescriptionsItem label="文件数">{{ quota.used_file_count }}</ElDescriptionsItem>
+        <ElDescriptionsItem label="已确认用量">
+          {{ formatByteCount(storageQuota.used_value) }}
+        </ElDescriptionsItem>
+        <ElDescriptionsItem label="上传预留">
+          {{ formatByteCount(storageQuota.held_value) }}
+        </ElDescriptionsItem>
+        <ElDescriptionsItem label="当前占用">
+          {{ formatByteCount(storageQuota.occupancy_value) }}
+        </ElDescriptionsItem>
+        <ElDescriptionsItem label="剩余容量">
+          {{
+            storageQuota.remaining_value === null
+              ? '无限'
+              : formatByteCount(storageQuota.remaining_value)
+          }}
+        </ElDescriptionsItem>
+        <ElDescriptionsItem label="占用率">
+          {{ formatUsageRatio(storageQuota.usage_ratio) }}
+        </ElDescriptionsItem>
+        <ElDescriptionsItem label="已确认文件数">
+          {{ storageQuota.used_file_count }}
+        </ElDescriptionsItem>
+        <ElDescriptionsItem label="预留文件数">
+          {{ storageQuota.held_file_count }}
+        </ElDescriptionsItem>
+        <ElDescriptionsItem label="配额版本">v{{ storageQuota.version }}</ElDescriptionsItem>
+      </ElDescriptions>
+      <ElEmpty v-else-if="!quotaLoading" description="中央存储配额不可用" />
+    </ElCard>
+
+    <ElCard
+      v-loading="quotaLoading"
+      class="art-table-card"
+      shadow="never"
+      style="margin-bottom: 16px"
+    >
+      <template #header>file_media 模块策略</template>
+      <ElAlert
+        title="来源：file_media policy。这里只控制单文件上限、预览、大文件与模块状态，不承载机构总容量。"
+        type="warning"
+        :closable="false"
+        style="margin-bottom: 12px"
+      />
+      <ElDescriptions v-if="policy" :column="4" border>
         <ElDescriptionsItem label="单文件上限">
-          {{ formatBytes(quota.max_file_bytes) }}
+          {{ formatByteCount(policy.max_file_bytes) }}
         </ElDescriptionsItem>
-        <ElDescriptionsItem label="大文件/预览">
-          {{ Number(quota.large_file_enabled) === 1 ? '开' : '关' }} /
-          {{ Number(quota.preview_enabled) === 1 ? '开' : '关' }}
+        <ElDescriptionsItem label="大文件">
+          {{ policy.large_file_enabled === 1 ? '开启' : '关闭' }}
+        </ElDescriptionsItem>
+        <ElDescriptionsItem label="预览">
+          {{ policy.preview_enabled === 1 ? '开启' : '关闭' }}
+        </ElDescriptionsItem>
+        <ElDescriptionsItem label="模块状态">
+          {{ policy.status === 1 ? '启用' : '停用' }}
         </ElDescriptionsItem>
       </ElDescriptions>
+      <ElEmpty v-else-if="!quotaLoading" description="file_media 策略不可用" />
       <div style="margin-top: 12px">
-        <ElButton v-permission="'saimulti:tenant:file_media:quota'" type="primary" @click="openQuota">
-          编辑策略
+        <ElButton
+          v-permission="'saimulti:tenant:file_media:quota'"
+          type="primary"
+          :disabled="policyDialogLoading"
+          @click="openPolicy"
+        >
+          编辑模块策略
         </ElButton>
       </div>
     </ElCard>
@@ -27,9 +90,16 @@
     <ElCard class="art-table-card" shadow="never">
       <ElTabs v-model="activeTab">
         <ElTabPane label="目录" name="folder">
-          <ArtTableHeader v-model:columns="folderColumnChecks" :loading="folderLoading" @refresh="refreshFolders">
+          <ArtTableHeader
+            v-model:columns="folderColumnChecks"
+            :loading="folderLoading"
+            @refresh="refreshFolders"
+          >
             <template #left>
-              <ElButton v-permission="'saimulti:tenant:file_media:space'" @click="showFolderDialog('add')">
+              <ElButton
+                v-permission="'saimulti:tenant:file_media:space'"
+                @click="showFolderDialog('add')"
+              >
                 新建目录
               </ElButton>
             </template>
@@ -52,9 +122,13 @@
           </ArtTable>
         </ElTabPane>
         <ElTabPane label="文件" name="item">
-          <ArtTableHeader v-model:columns="itemColumnChecks" :loading="itemLoading" @refresh="refreshItems">
+          <ArtTableHeader
+            v-model:columns="itemColumnChecks"
+            :loading="itemLoading"
+            @refresh="refreshItems"
+          >
             <template #left>
-              <ElButton v-permission="'saimulti:tenant:file_media:space'" @click="showItemDialog('add')">
+              <ElButton v-permission="'saimulti:tenant:file_media:space'" @click="showItemDialog">
                 登记文件
               </ElButton>
             </template>
@@ -68,7 +142,7 @@
             @pagination:size-change="handleItemSizeChange"
             @pagination:current-change="handleItemCurrentChange"
           >
-            <template #size="{ row }">{{ formatBytes(row.size_bytes) }}</template>
+            <template #size="{ row }">{{ formatRecordedFileBytes(row.size_bytes) }}</template>
             <template #operation="{ row }">
               <ElButton size="small" type="danger" @click="deleteItem(row)">删除</ElButton>
             </template>
@@ -77,28 +151,50 @@
       </ElTabs>
     </ElCard>
 
-    <ElDialog v-model="quotaVisible" title="编辑配额策略" width="520px" align-center>
-      <ElForm :model="quotaForm" label-width="140px">
-        <ElFormItem label="存储上限(字节)">
-          <ElInput v-model="quotaForm.max_storage_bytes" />
-        </ElFormItem>
+    <ElDialog
+      v-model="policyVisible"
+      v-loading="policyDialogLoading"
+      title="编辑 file_media 模块策略"
+      width="520px"
+      align-center
+      :close-on-click-modal="!policySaving"
+      :close-on-press-escape="!policySaving"
+      :show-close="!policySaving"
+      @close="invalidatePolicyDialog"
+    >
+      <ElForm :model="policyForm" label-width="140px">
         <ElFormItem label="单文件上限(字节)">
-          <ElInput v-model="quotaForm.max_file_bytes" />
+          <ElInput v-model="policyForm.max_file_bytes" inputmode="numeric" autocomplete="off" />
         </ElFormItem>
         <ElFormItem label="大文件">
-          <ElSwitch v-model="quotaForm.large_file_enabled" :active-value="1" :inactive-value="0" />
+          <ElSwitch v-model="policyForm.large_file_enabled" :active-value="1" :inactive-value="0" />
         </ElFormItem>
         <ElFormItem label="预览">
-          <ElSwitch v-model="quotaForm.preview_enabled" :active-value="1" :inactive-value="0" />
+          <ElSwitch v-model="policyForm.preview_enabled" :active-value="1" :inactive-value="0" />
+        </ElFormItem>
+        <ElFormItem label="文件服务状态">
+          <ElSwitch v-model="policyForm.status" :active-value="1" :inactive-value="0" />
         </ElFormItem>
       </ElForm>
       <template #footer>
-        <ElButton @click="quotaVisible = false">取消</ElButton>
-        <ElButton type="primary" :loading="quotaSaving" @click="saveQuota">保存</ElButton>
+        <ElButton :disabled="policySaving" @click="closePolicyDialog">取消</ElButton>
+        <ElButton
+          type="primary"
+          :loading="policySaving"
+          :disabled="policyDialogLoading"
+          @click="savePolicy"
+        >
+          保存
+        </ElButton>
       </template>
     </ElDialog>
 
-    <ElDialog v-model="folderVisible" :title="folderType === 'add' ? '新建目录' : '编辑目录'" width="480px" align-center>
+    <ElDialog
+      v-model="folderVisible"
+      :title="folderType === 'add' ? '新建目录' : '编辑目录'"
+      width="480px"
+      align-center
+    >
       <ElForm :model="folderForm" label-width="100px">
         <ElFormItem label="名称">
           <ElInput v-model="folderForm.name" />
@@ -148,59 +244,231 @@
 <script setup lang="ts">
   import { ElMessage } from 'element-plus'
   import { useTable } from '@/hooks/useTable'
-  import api from '@/api/file-media'
+  import { useSiteStore } from '@/store/modules/site'
+  import api, { type FileMediaPolicy, type StorageQuota } from '@/api/file-media'
+  import {
+    createLatestRequestFence,
+    formatByteCount,
+    formatQuotaByteCount,
+    formatUsageRatio,
+    parseExpectedOrganization,
+    parseFileMediaPolicy
+  } from '@/utils/fileMediaContract'
 
+  const siteStore = useSiteStore()
   const activeTab = ref('folder')
-  const quota = ref<Record<string, any> | null>(null)
-
-  const loadQuota = async () => {
-    quota.value = (await api.quotaRead()) as any
-  }
-  onMounted(loadQuota)
-
-  const formatBytes = (n: number) => {
-    const v = Number(n || 0)
-    if (v === 0) return '0 B'
-    if (v < 1024) return `${v} B`
-    if (v < 1024 ** 2) return `${(v / 1024).toFixed(1)} KB`
-    if (v < 1024 ** 3) return `${(v / 1024 ** 2).toFixed(1)} MB`
-    return `${(v / 1024 ** 3).toFixed(2)} GB`
-  }
-
-  const quotaVisible = ref(false)
-  const quotaSaving = ref(false)
-  const quotaForm = reactive({
-    max_storage_bytes: '',
+  const storageQuota = ref<StorageQuota | null>(null)
+  const policy = ref<FileMediaPolicy | null>(null)
+  const quotaLoading = ref(false)
+  const quotaFence = createLatestRequestFence()
+  const policyDialogFence = createLatestRequestFence()
+  const policyStateFence = createLatestRequestFence()
+  const policyVisible = ref(false)
+  const policyDialogLoading = ref(false)
+  const policySaving = ref(false)
+  const policyForm = reactive<FileMediaPolicy>({
     max_file_bytes: '',
     large_file_enabled: 1,
-    preview_enabled: 1
+    preview_enabled: 1,
+    status: 1
   })
-  const openQuota = () => {
-    if (!quota.value) return
-    Object.assign(quotaForm, {
-      max_storage_bytes: String(quota.value.max_storage_bytes ?? ''),
-      max_file_bytes: String(quota.value.max_file_bytes ?? ''),
-      large_file_enabled: Number(quota.value.large_file_enabled ?? 1),
-      preview_enabled: Number(quota.value.preview_enabled ?? 1)
-    })
-    quotaVisible.value = true
+  let viewMounted = false
+
+  const currentOrganization = () => {
+    if (!siteStore.loaded) throw new Error('当前机构信息尚未加载')
+    return parseExpectedOrganization(siteStore.info.organization)
   }
-  const saveQuota = async () => {
-    quotaSaving.value = true
+
+  const isCurrentOrganization = (expectedOrganization: number) => {
     try {
-      await api.quotaUpdate({
-        max_storage_bytes: Number(quotaForm.max_storage_bytes),
-        max_file_bytes: Number(quotaForm.max_file_bytes),
-        large_file_enabled: quotaForm.large_file_enabled,
-        preview_enabled: quotaForm.preview_enabled
-      })
-      ElMessage.success('已保存')
-      quotaVisible.value = false
-      await loadQuota()
-    } finally {
-      quotaSaving.value = false
+      return siteStore.loaded && currentOrganization() === expectedOrganization
+    } catch {
+      return false
     }
   }
+
+  const loadQuota = async () => {
+    let expectedOrganization: number
+    try {
+      expectedOrganization = currentOrganization()
+    } catch {
+      storageQuota.value = null
+      policy.value = null
+      quotaLoading.value = false
+      return
+    }
+    const quotaToken = quotaFence.begin()
+    const policyToken = policySaving.value || policyVisible.value ? null : policyStateFence.begin()
+    quotaLoading.value = true
+    const policyRequest: Promise<FileMediaPolicy | null> =
+      policyToken === null ? Promise.resolve(null) : api.policyRead()
+    try {
+      const [storageResult, policyResult] = await Promise.allSettled([
+        api.storageRead(expectedOrganization),
+        policyRequest
+      ])
+      const failures: unknown[] = []
+      if (quotaFence.isCurrent(quotaToken) && isCurrentOrganization(expectedOrganization)) {
+        if (storageResult.status === 'fulfilled') {
+          storageQuota.value = storageResult.value
+        } else {
+          storageQuota.value = null
+          failures.push(storageResult.reason)
+        }
+      }
+      if (
+        policyToken !== null &&
+        policyStateFence.isCurrent(policyToken) &&
+        isCurrentOrganization(expectedOrganization)
+      ) {
+        if (policyResult.status === 'fulfilled' && policyResult.value !== null) {
+          policy.value = policyResult.value
+        } else {
+          policy.value = null
+          if (policyResult.status === 'rejected') failures.push(policyResult.reason)
+        }
+      }
+      const failure = failures[0]
+      if (failure !== undefined) {
+        ElMessage.error(failure instanceof Error ? failure.message : '存储配额或模块策略加载失败')
+      }
+    } finally {
+      if (quotaFence.isCurrent(quotaToken) && isCurrentOrganization(expectedOrganization)) {
+        quotaLoading.value = false
+      }
+    }
+  }
+
+  const invalidateTenantContext = () => {
+    quotaFence.invalidate()
+    policyDialogFence.invalidate()
+    policyStateFence.invalidate()
+    storageQuota.value = null
+    policy.value = null
+    quotaLoading.value = false
+    policyVisible.value = false
+    policyDialogLoading.value = false
+    policySaving.value = false
+    Object.assign(policyForm, {
+      max_file_bytes: '',
+      large_file_enabled: 1,
+      preview_enabled: 1,
+      status: 1
+    })
+  }
+
+  watch(
+    () => [siteStore.loaded, siteStore.info.organization] as const,
+    () => {
+      invalidateTenantContext()
+      if (viewMounted && siteStore.loaded) void loadQuota()
+    }
+  )
+
+  onMounted(() => {
+    viewMounted = true
+    if (siteStore.loaded) void loadQuota()
+  })
+
+  const formatRecordedFileBytes = (value: unknown) => {
+    if (typeof value === 'string') return formatByteCount(value)
+    if (typeof value === 'number' && Number.isSafeInteger(value) && value >= 0) {
+      return formatByteCount(String(value))
+    }
+    return '—'
+  }
+
+  const invalidatePolicyDialog = () => {
+    policyDialogFence.invalidate()
+    policyDialogLoading.value = false
+  }
+
+  const closePolicyDialog = () => {
+    if (policySaving.value) return
+    invalidatePolicyDialog()
+    policyVisible.value = false
+  }
+
+  const openPolicy = async () => {
+    let expectedOrganization: number
+    try {
+      expectedOrganization = currentOrganization()
+    } catch (error) {
+      ElMessage.error(error instanceof Error ? error.message : '当前机构信息无效')
+      return
+    }
+    const dialogToken = policyDialogFence.begin()
+    const stateToken = policyStateFence.begin()
+    if (policy.value) Object.assign(policyForm, policy.value)
+    policyVisible.value = true
+    policyDialogLoading.value = true
+    try {
+      const nextPolicy = await api.policyRead()
+      if (
+        !policyDialogFence.isCurrent(dialogToken) ||
+        !policyStateFence.isCurrent(stateToken) ||
+        !isCurrentOrganization(expectedOrganization)
+      ) {
+        return
+      }
+      policy.value = nextPolicy
+      Object.assign(policyForm, nextPolicy)
+    } catch (error) {
+      if (
+        !policyDialogFence.isCurrent(dialogToken) ||
+        !policyStateFence.isCurrent(stateToken) ||
+        !isCurrentOrganization(expectedOrganization)
+      ) {
+        return
+      }
+      ElMessage.error(error instanceof Error ? error.message : 'file_media 模块策略加载失败')
+      policyVisible.value = false
+    } finally {
+      if (policyDialogFence.isCurrent(dialogToken) && isCurrentOrganization(expectedOrganization)) {
+        policyDialogLoading.value = false
+      }
+    }
+  }
+
+  const savePolicy = async () => {
+    if (policySaving.value || policyDialogLoading.value) return
+    let requestData: FileMediaPolicy
+    try {
+      requestData = parseFileMediaPolicy({ ...policyForm })
+    } catch (error) {
+      ElMessage.warning(error instanceof Error ? error.message : '模块策略格式无效')
+      return
+    }
+
+    let expectedOrganization: number
+    try {
+      expectedOrganization = currentOrganization()
+    } catch (error) {
+      ElMessage.error(error instanceof Error ? error.message : '当前机构信息无效')
+      return
+    }
+
+    const token = policyStateFence.begin()
+    policySaving.value = true
+    try {
+      const nextPolicy = await api.policyUpdate(requestData)
+      if (!policyStateFence.isCurrent(token) || !isCurrentOrganization(expectedOrganization)) {
+        return
+      }
+      policy.value = nextPolicy
+      ElMessage.success('已保存')
+      policyVisible.value = false
+    } finally {
+      if (policyStateFence.isCurrent(token) && isCurrentOrganization(expectedOrganization)) {
+        policySaving.value = false
+      }
+    }
+  }
+
+  onBeforeUnmount(() => {
+    viewMounted = false
+    invalidateTenantContext()
+  })
 
   const {
     columns: folderColumns,
@@ -243,7 +511,11 @@
       if (folderType.value === 'add') {
         await api.folderCreate({ name: folderForm.name, parent_id: folderForm.parent_id })
       } else {
-        await api.folderUpdate({ id: folderForm.id, name: folderForm.name, parent_id: folderForm.parent_id })
+        await api.folderUpdate({
+          id: folderForm.id,
+          name: folderForm.name,
+          parent_id: folderForm.parent_id
+        })
       }
       ElMessage.success('已保存')
       folderVisible.value = false
@@ -290,7 +562,7 @@
     kind: 'file',
     folder_id: 0
   })
-  const showItemDialog = (_type: 'add') => {
+  const showItemDialog = () => {
     Object.assign(itemForm, { name: '', file_id: '', size_bytes: '', kind: 'file', folder_id: 0 })
     itemVisible.value = true
   }

@@ -147,7 +147,9 @@
   const loadChildren = async (pcode?: AreaValue) => {
     const key = getLoadKey(pcode)
     if (loadedPcodes.has(key)) {
-      return pcode === undefined ? areaOptions.value : findOption(areaOptions.value, pcode)?.children || []
+      return pcode === undefined
+        ? areaOptions.value
+        : findOption(areaOptions.value, pcode)?.children || []
     }
 
     const children = formatOptions(
@@ -207,7 +209,12 @@
   }
 
   const isEmptyValue = (value: CascaderModel) => {
-    return value === null || value === undefined || value === '' || (Array.isArray(value) && value.length === 0)
+    return (
+      value === null ||
+      value === undefined ||
+      value === '' ||
+      (Array.isArray(value) && value.length === 0)
+    )
   }
 
   const toPathValue = async (value: CascaderModel) => {
@@ -239,7 +246,9 @@
         return
       }
 
-      const nextValue = props.emitPath ? await toPathValue(value as AreaValue[]) : await toPathValue(value)
+      const nextValue = props.emitPath
+        ? await toPathValue(value as AreaValue[])
+        : await toPathValue(value)
       setInternalValue(nextValue)
     } finally {
       await nextTick()

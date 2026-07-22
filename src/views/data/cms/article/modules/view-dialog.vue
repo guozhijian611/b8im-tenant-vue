@@ -92,7 +92,7 @@
     link_url: '',
     is_hot: 2,
     id: null,
-    create_time: '',
+    create_time: ''
   }
 
   /**

@@ -109,7 +109,7 @@ const canonicalJson = (value: unknown): string => {
 
 const decodeBase64Url = (value: string) => {
   const normalized = value.replace(/-/g, '+').replace(/_/g, '/')
-  const binary = atob(normalized + '='.repeat((4 - normalized.length % 4) % 4))
+  const binary = atob(normalized + '='.repeat((4 - (normalized.length % 4)) % 4))
   return Uint8Array.from(binary, (character) => character.charCodeAt(0))
 }
 
@@ -128,18 +128,22 @@ const verifyRoutingSignature = async (data: Api.Auth.siteInfoResponse) => {
   if (!publicKey || decodeBase64Url(publicKey).length !== 32) {
     throw new Error(`appInfo 签名密钥 ${signature.kid} 不受信任`)
   }
-  const key = await crypto.subtle.importKey('raw', decodeBase64Url(publicKey), 'Ed25519', false, ['verify'])
+  const key = await crypto.subtle.importKey('raw', decodeBase64Url(publicKey), 'Ed25519', false, [
+    'verify'
+  ])
   const valid = await crypto.subtle.verify(
     'Ed25519',
     key,
     decodeBase64Url(signature.value),
-    new TextEncoder().encode(canonicalJson({
-      organization: data.organization,
-      deployment_id: data.deployment_id,
-      enterprise_code: data.enterprise_code,
-      client_family: data.client_family,
-      server_info: data.server_info
-    }))
+    new TextEncoder().encode(
+      canonicalJson({
+        organization: data.organization,
+        deployment_id: data.deployment_id,
+        enterprise_code: data.enterprise_code,
+        client_family: data.client_family,
+        server_info: data.server_info
+      })
+    )
   )
   if (!valid) throw new Error('appInfo 线路签名验证失败')
 }

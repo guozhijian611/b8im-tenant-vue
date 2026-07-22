@@ -8,7 +8,11 @@
       <ArtTableHeader v-model:columns="columnChecks" :loading="loading" @refresh="refreshData">
         <template #left>
           <ElSpace wrap>
-            <ElButton v-permission="'saimulti:tenant:post:save'" @click="showDialog('add')" v-ripple>
+            <ElButton
+              v-permission="'saimulti:tenant:post:save'"
+              @click="showDialog('add')"
+              v-ripple
+            >
               <template #icon>
                 <ArtSvgIcon icon="ri:add-fill" />
               </template>

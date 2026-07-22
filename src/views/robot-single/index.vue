@@ -6,7 +6,10 @@
           <ArtTableHeader v-model:columns="columnChecks" :loading="loading" @refresh="refreshData">
             <template #left>
               <ElSpace wrap>
-                <ElButton v-permission="'saimulti:tenant:robot_single:save'" @click="showDialog('add')">
+                <ElButton
+                  v-permission="'saimulti:tenant:robot_single:save'"
+                  @click="showDialog('add')"
+                >
                   新增机器人
                 </ElButton>
                 <ElButton
@@ -67,7 +70,10 @@
             <template #left>
               <ElSpace wrap>
                 <span v-if="currentRobotName">当前：{{ currentRobotName }}</span>
-                <ElButton v-permission="'saimulti:tenant:robot_single:rule'" @click="showRuleDialog('add')">
+                <ElButton
+                  v-permission="'saimulti:tenant:robot_single:rule'"
+                  @click="showRuleDialog('add')"
+                >
                   新增规则
                 </ElButton>
               </ElSpace>
@@ -105,7 +111,10 @@
             <template #left>
               <ElSpace wrap>
                 <span v-if="currentRobotName">当前：{{ currentRobotName }}</span>
-                <ElButton v-permission="'saimulti:tenant:robot_single:kb'" @click="showKbDialog('add')">
+                <ElButton
+                  v-permission="'saimulti:tenant:robot_single:kb'"
+                  @click="showKbDialog('add')"
+                >
                   新增条目
                 </ElButton>
               </ElSpace>
@@ -243,7 +252,6 @@
     columnChecks,
     data,
     loading,
-    getData,
     pagination,
     handleSizeChange,
     handleCurrentChange,

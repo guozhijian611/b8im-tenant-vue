@@ -1,4 +1,4 @@
-<!-- 登录、注册、忘记密码左侧背景 -->
+<!-- 登录页左侧背景 -->
 <template>
   <div class="login-left-view">
     <div class="logo">
@@ -553,5 +553,4 @@
       }
     }
   }
-
 </style>

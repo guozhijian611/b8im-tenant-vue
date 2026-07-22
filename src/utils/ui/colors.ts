@@ -92,9 +92,7 @@ function isValidRgbValue(r: number, g: number, b: number): boolean {
 function getRelativeLuminance(color: string): number {
   const [red, green, blue] = hexToRgb(color).map((value) => {
     const channel = value / 255
-    return channel <= 0.03928
-      ? channel / 12.92
-      : Math.pow((channel + 0.055) / 1.055, 2.4)
+    return channel <= 0.03928 ? channel / 12.92 : Math.pow((channel + 0.055) / 1.055, 2.4)
   })
 
   return 0.2126 * red + 0.7152 * green + 0.0722 * blue

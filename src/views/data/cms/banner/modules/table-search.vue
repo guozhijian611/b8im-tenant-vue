@@ -17,8 +17,6 @@
 </template>
 
 <script setup lang="ts">
-  import commonApi from '@/api/common'
-
   interface Props {
     modelValue: Record<string, any>
   }
@@ -40,13 +38,8 @@
     set: (val) => emit('update:modelValue', val)
   })
 
-  // 选项数据
-  const optionData = reactive({
-  })
-
   // 初始化选项数据
-  const initOptions = async () => {
-  }
+  const initOptions = async () => {}
 
   // 组件挂载时初始化选项数据
   onMounted(() => {

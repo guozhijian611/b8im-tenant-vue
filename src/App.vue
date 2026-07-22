@@ -34,9 +34,7 @@
 
   const getRouteEnterpriseCode = () => {
     const enterpriseCode = route.query.enterprise_code
-    return Array.isArray(enterpriseCode)
-      ? enterpriseCode[0] || ''
-      : String(enterpriseCode || '')
+    return Array.isArray(enterpriseCode) ? enterpriseCode[0] || '' : String(enterpriseCode || '')
   }
 
   const loadCurrentSiteInfo = () => {

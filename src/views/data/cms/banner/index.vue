@@ -84,7 +84,7 @@
 
   // 搜索表单
   const searchForm = ref({
-    title: undefined,
+    title: undefined
   })
 
   // 搜索处理
@@ -141,5 +141,4 @@
     dialogVisible: viewDialogVisible,
     dialogData: viewDialogData
   } = useSaiAdmin()
-
 </script>
